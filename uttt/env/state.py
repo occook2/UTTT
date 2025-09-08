@@ -69,19 +69,33 @@ class UTTTEnv:
         return [rc_to_action(r, c) for r, c in zip(*np.where(mask == 1))]
 
     def legal_actions_mask(self) -> np.ndarray:
-        mask = (self.board == 0).astype(np.int8)
+        empties = (self.board == 0).astype(np.int8)
+
+        # Build "allowed" from all OPEN micros only
+        allowed = np.zeros_like(empties, dtype=np.int8)
+        for i in range(3):
+            for j in range(3):
+                if self._micro_is_open(i, j):
+                    r0, c0 = i * 3, j * 3
+                    allowed[r0:r0+3, c0:c0+3] = 1
+
         if self.last_move is None:
-            return mask
+            return (allowed & empties).astype(np.int8)
+
+        # Target micro from the last move
         mr, mc = self.last_move
-        target_r, target_c = mr % 3, mc % 3  # target micro-board (3x3)
-        r0, c0 = target_r * 3, target_c * 3
-        micro = self.board[r0:r0+3, c0:c0+3]
-        macro_cell = self.macro_wins[target_r, target_c]
-        if macro_cell == 0 and (micro == 0).any():
-            allowed = np.zeros_like(mask)
-            allowed[r0:r0+3, c0:c0+3] = 1
-            return (allowed & mask).astype(np.int8)
-        return mask
+        ti, tj = mr % 3, mc % 3
+
+        # If the target micro is open, restrict to it; otherwise allow any open micro
+        if self._micro_is_open(ti, tj):
+            target_allowed = np.zeros_like(allowed, dtype=np.int8)
+            r0, c0 = ti * 3, tj * 3
+            target_allowed[r0:r0+3, c0:c0+3] = 1
+            return (target_allowed & empties).astype(np.int8)
+
+        # Target micro is closed → free move among all open micros
+        return (allowed & empties).astype(np.int8)
+
 
     def _encode(self) -> np.ndarray:
         cur = np.full((9, 9), 1 if self.player == 1 else 0, dtype=np.int8)
@@ -102,7 +116,12 @@ class UTTTEnv:
         sub = self.board[mr*3:mr*3+3, mc*3:mc*3+3]
         w = self._micro_winner(sub)
         if w != 0:
+            # Mark winner (+1 or -1) → locked
             self.macro_wins[mr, mc] = w
+        elif not (sub == 0).any():
+            # Full with no winner → draw/locked
+            self.macro_wins[mr, mc] = 2  # 2 means closed via draw
+
 
     @staticmethod
     def _micro_winner(sub: np.ndarray) -> int:
@@ -118,6 +137,14 @@ class UTTTEnv:
             if s == -3:
                 return -1
         return 0
+    
+    def _micro_is_open(self, i: int, j: int) -> bool:
+        # Open if nobody has won it AND it still has empty cells.
+        if self.macro_wins[i, j] != 0:
+            return False
+        sub = self.board[i*3:(i+1)*3, j*3:(j+1)*3]
+        return (sub == 0).any()
+
 
     def _macro_winner(self) -> int:
         return self._micro_winner(self.macro_wins)

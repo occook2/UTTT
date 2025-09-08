@@ -1,3 +1,5 @@
+import argparse
+
 from uttt.env.state import UTTTEnv
 from uttt.agents.random import RandomAgent
 
