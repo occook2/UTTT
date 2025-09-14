@@ -64,6 +64,26 @@ class UTTTEnv:
 
         return StepResult(self._encode(), reward, self.terminated, {"winner": winner})
 
+    def step_fast(self, action: int):
+        """Like step(), but no obs encoding. Returns (terminated: bool, winner: int)."""
+        assert not self.terminated, "Game over"
+        r, c = action_to_rc(action)
+        if self.legal_actions_mask()[r, c] == 0:
+            raise ValueError(f"Illegal move at {(r, c)}")
+
+        self.board[r, c] = self.player
+        self._update_macro_wins(r, c)
+        self.last_move = (r, c)
+
+        winner = self._macro_winner()
+        if winner != 0 or not self.legal_actions_mask().any():
+            self.terminated = True
+            # do NOT flip player on terminal
+        else:
+            self.player *= -1
+
+        return self.terminated, int(winner)
+
     def legal_actions(self) -> List[int]:
         mask = self.legal_actions_mask()
         return [rc_to_action(r, c) for r, c in zip(*np.where(mask == 1))]
@@ -95,6 +115,35 @@ class UTTTEnv:
 
         # Target micro is closed → free move among all open micros
         return (allowed & empties).astype(np.int8)
+
+    def legal_actions_fast(self) -> list[int]:
+        """Fast path for legal actions: prefer scanning only the target 3x3."""
+        empties = (self.board == 0)
+        if self.last_move is None:
+            # Game start: everything open → all empties are legal
+            rs, cs = np.where(empties)
+            return [rc_to_action(int(r), int(c)) for r, c in zip(rs, cs)]
+
+        mr, mc = self.last_move
+        ti, tj = mr % 3, mc % 3
+
+        # If target micro is open, only scan that 3x3
+        if self._micro_is_open(ti, tj):
+            r0, c0 = ti * 3, tj * 3
+            sub = empties[r0:r0+3, c0:c0+3]
+            if not sub.any():
+                return []
+            rs, cs = np.where(sub)
+            return [rc_to_action(r0 + int(r), c0 + int(c)) for r, c in zip(rs, cs)]
+
+        # Target is closed → free move among all open micros.
+        # Still avoid building full masks; filter empties by open-micro predicate.
+        rs, cs = np.where(empties)
+        out: list[int] = []
+        for r, c in zip(rs, cs):
+            if self._micro_is_open(r // 3, c // 3):
+                out.append(rc_to_action(int(r), int(c)))
+        return out
 
 
     def _encode(self) -> np.ndarray:
