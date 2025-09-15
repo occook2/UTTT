@@ -129,6 +129,24 @@ class HeuristicAgent:
 
         return score
 
+    def best_of(self, env: UTTTEnv, legal: list[int]) -> int:
+        if len(legal) == 1:
+            return int(legal[0])
+
+        best: list[int] = []
+        best_score = -float("inf")
+        for a in legal:
+            s = self._score_action(env, a)
+            if s > best_score + 1e-9:
+                best_score = s
+                best = [a]
+            elif abs(s - best_score) <= 1e-9:
+                best.append(a)
+
+        if hasattr(env, "rng") and env.rng is not None:
+            return int(env.rng.choice(np.array(best)))
+        return random.choice(best)
+
     # ----------------------------- Helpers ---------------------------------
 
     @staticmethod

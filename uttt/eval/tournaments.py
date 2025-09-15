@@ -204,10 +204,20 @@ def play_series_with_records(
         avg_moves=(total_moves / max(1, n_games)),
     )
 
+    def _canonical_agent_id(cls_name: str, kwargs: dict) -> str:
+        """Stable string identifier for an agent config."""
+        if not kwargs:
+            return cls_name
+        parts = [f"{k}={kwargs[k]}" for k in sorted(kwargs.keys())]
+        return f"{cls_name}(" + ",".join(parts) + ")"
+
+    # inside play_series_with_records, just before returning SeriesPackage:
     meta = {
         "timestamp": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
         "agent_A": AgentA.__name__,
         "agent_B": AgentB.__name__,
+        "agent_A_id": _canonical_agent_id(AgentA.__name__, instantiate_kwargs_A),
+        "agent_B_id": _canonical_agent_id(AgentB.__name__, instantiate_kwargs_B),
         "base_seed": base_seed,
         "instantiate_kwargs_A": instantiate_kwargs_A,
         "instantiate_kwargs_B": instantiate_kwargs_B,

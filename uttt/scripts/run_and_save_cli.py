@@ -1,16 +1,20 @@
 # uttt/scripts/run_and_save_cli.py
 import argparse
+import time
 
 from uttt.agents.random import RandomAgent
 from uttt.agents.heuristic import HeuristicAgent
+from uttt.agents.mcts.mcts import MCTSAgent, MCTSConfig
 from uttt.eval.tournaments import play_series_with_records, save_series_json
 
 AGENTS = {
     "random": RandomAgent,
     "heuristic": HeuristicAgent,
+    "mcts": MCTSAgent,
 }
 
 def main():
+    start = time.time()
     p = argparse.ArgumentParser()
     p.add_argument("--A", default="heuristic", choices=AGENTS.keys())
     p.add_argument("--B", default="random", choices=AGENTS.keys())
@@ -20,7 +24,9 @@ def main():
     args = p.parse_args()
 
     pkg = play_series_with_records(AGENTS[args.A], AGENTS[args.B], n_games=args.n_games, base_seed=args.seed)
+    end = time.time()
     print(
+        f"Tournament Time: {end - start:.2f}s\n"
         f"{args.A} (A) vs {args.B} (B) over {pkg.summary.n_games} games:\n"
         f"  A wins: {pkg.summary.wins_A}\n"
         f"  B wins: {pkg.summary.wins_B}\n"
