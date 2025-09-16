@@ -12,7 +12,7 @@ import time
 from collections import defaultdict
 
 from uttt.env.state import UTTTEnv
-from uttt.agents.mcts.transpo import state_key, clone_env
+from uttt.mcts.transpo import state_key, clone_env
 
 
 @dataclass
