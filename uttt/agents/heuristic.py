@@ -1,11 +1,12 @@
+
 import random
 from typing import List, Tuple
-
 import numpy as np
 from uttt.env.state import UTTTEnv, action_to_rc
+from uttt.agents.base import Agent
 
 
-class HeuristicAgent:
+class HeuristicAgent(Agent):
     """
     A simple, non-learning heuristic agent for Ultimate Tic-Tac-Toe that
     consistently beats a random agent by prioritizing:

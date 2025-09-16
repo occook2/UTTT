@@ -3,13 +3,12 @@ import argparse
 from uttt.env.state import UTTTEnv
 from uttt.agents.random import RandomAgent
 from uttt.agents.heuristic import HeuristicAgent
-from uttt.agents.mcts.mcts import MCTSAgent
+from uttt.agents.base import Agent
 from uttt.eval.tournaments import play_series
 
 AGENTS = {
     "random": RandomAgent,
     "heuristic": HeuristicAgent,
-    "mcts": MCTSAgent,
 }
 
 def main():

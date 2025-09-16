@@ -1,0 +1,7 @@
+Delete the entire uttt/agents/mcts/ folder and its contents:
+- mcts.py
+- transpo.py
+- uct.py
+- __init__.py
+
+This will remove the legacy MCTSAgent and related files from your codebase.

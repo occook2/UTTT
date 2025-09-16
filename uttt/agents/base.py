@@ -1,11 +1,12 @@
 # uttt/agents/base.py
 from __future__ import annotations
 from typing import Protocol, runtime_checkable, Optional, Any
+from uttt.env.state import UTTTEnv
 
 # Structural interface (duck-typed): anything with select_action(env)->int is an Agent.
 @runtime_checkable
 class AgentLike(Protocol):
-    def select_action(self, env: "UTTTEnv") -> int: ...
+    def select_action(self, env: UTTTEnv) -> int: ...
     # Optional lifecycle hooks (no-ops by default if not implemented)
     def reset(self) -> None: ...
     def seed(self, seed: Optional[int]) -> None: ...
@@ -25,5 +26,5 @@ class Agent(AgentLike):
         """Set internal RNG seed if the agent has one."""
         return None
 
-    def select_action(self, env: "UTTTEnv") -> int:  # pragma: no cover - abstract
+    def select_action(self, env: UTTTEnv) -> int:  # pragma: no cover - abstract
         raise NotImplementedError("Agents must implement select_action(env) -> int")

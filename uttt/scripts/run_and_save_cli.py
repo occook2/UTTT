@@ -4,13 +4,12 @@ import time
 
 from uttt.agents.random import RandomAgent
 from uttt.agents.heuristic import HeuristicAgent
-from uttt.agents.mcts.mcts import MCTSAgent, MCTSConfig
+from uttt.agents.base import Agent
 from uttt.eval.tournaments import play_series_with_records, save_series_json
 
 AGENTS = {
     "random": RandomAgent,
     "heuristic": HeuristicAgent,
-    "mcts": MCTSAgent,
 }
 
 def main():
