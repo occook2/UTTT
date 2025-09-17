@@ -96,8 +96,20 @@ def play_series(
         if g % 20 == 0:
             print(f"Starting game {g+1}/{n_games}...")
         # Fresh agent instances each game (clean state)
-        A = AgentA(**instantiate_kwargs_A)
-        B = AgentB(**instantiate_kwargs_B)
+        # Handle both class types and callable factories
+        if callable(AgentA) and not hasattr(AgentA, '__name__'):
+            # It's a lambda/callable factory
+            A = AgentA()
+        else:
+            # It's a class
+            A = AgentA(**instantiate_kwargs_A)
+            
+        if callable(AgentB) and not hasattr(AgentB, '__name__'):
+            # It's a lambda/callable factory
+            B = AgentB()
+        else:
+            # It's a class
+            B = AgentB(**instantiate_kwargs_B)
 
         if g % 2 == 0:
             # A as X, B as O
@@ -155,6 +167,8 @@ def play_series_with_records(
     base_seed: int = 0,
     instantiate_kwargs_A: Optional[Dict[str, Any]] = None,
     instantiate_kwargs_B: Optional[Dict[str, Any]] = None,
+    agent_A_name: Optional[str] = None,
+    agent_B_name: Optional[str] = None,
 ) -> SeriesPackage:
     """
     Like play_series, but returns full per-game move records suitable for saving & replay.
@@ -168,8 +182,20 @@ def play_series_with_records(
     games: List[GameRecord] = []
 
     for g in range(n_games):
-        A = AgentA(**instantiate_kwargs_A)
-        B = AgentB(**instantiate_kwargs_B)
+        # Handle both class types and callable factories
+        if callable(AgentA) and not hasattr(AgentA, '__name__'):
+            # It's a lambda/callable factory
+            A = AgentA()
+        else:
+            # It's a class
+            A = AgentA(**instantiate_kwargs_A)
+            
+        if callable(AgentB) and not hasattr(AgentB, '__name__'):
+            # It's a lambda/callable factory  
+            B = AgentB()
+        else:
+            # It's a class
+            B = AgentB(**instantiate_kwargs_B)
         seed = base_seed + g
 
         if g % 2 == 0:
@@ -211,13 +237,44 @@ def play_series_with_records(
         parts = [f"{k}={kwargs[k]}" for k in sorted(kwargs.keys())]
         return f"{cls_name}(" + ",".join(parts) + ")"
 
+    # Get agent names for metadata - use provided names or fallback to extraction
+    if agent_A_name is None:
+        def get_agent_name(agent):
+            if hasattr(agent, '__name__'):
+                return agent.__name__
+            elif callable(agent):
+                # For lambda/callable factories, try to infer from the created instance
+                try:
+                    instance = agent()
+                    return instance.__class__.__name__
+                except:
+                    return 'UnknownAgent'
+            else:
+                return 'UnknownAgent'
+        agent_A_name = get_agent_name(AgentA)
+    
+    if agent_B_name is None:
+        def get_agent_name(agent):
+            if hasattr(agent, '__name__'):
+                return agent.__name__
+            elif callable(agent):
+                # For lambda/callable factories, try to infer from the created instance
+                try:
+                    instance = agent()
+                    return instance.__class__.__name__
+                except:
+                    return 'UnknownAgent'
+            else:
+                return 'UnknownAgent'
+        agent_B_name = get_agent_name(AgentB)
+
     # inside play_series_with_records, just before returning SeriesPackage:
     meta = {
         "timestamp": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-        "agent_A": AgentA.__name__,
-        "agent_B": AgentB.__name__,
-        "agent_A_id": _canonical_agent_id(AgentA.__name__, instantiate_kwargs_A),
-        "agent_B_id": _canonical_agent_id(AgentB.__name__, instantiate_kwargs_B),
+        "agent_A": agent_A_name,
+        "agent_B": agent_B_name,
+        "agent_A_id": _canonical_agent_id(agent_A_name, instantiate_kwargs_A),
+        "agent_B_id": _canonical_agent_id(agent_B_name, instantiate_kwargs_B),
         "base_seed": base_seed,
         "instantiate_kwargs_A": instantiate_kwargs_A,
         "instantiate_kwargs_B": instantiate_kwargs_B,

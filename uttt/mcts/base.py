@@ -18,7 +18,7 @@ from uttt.mcts.transpo import state_key, clone_env
 @dataclass
 class MCTSConfig:
     """Generic MCTS configuration"""
-    n_simulations: int = 200
+    n_simulations: int = 200 # Can cause slowdowns if too high
     c_puct: float = 1.0  # UCB exploration constant
     use_transposition_table: bool = True
     temperature: float = 1.0  # For action selection

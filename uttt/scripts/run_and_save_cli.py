@@ -5,11 +5,20 @@ import time
 from uttt.agents.random import RandomAgent
 from uttt.agents.heuristic import HeuristicAgent
 from uttt.agents.base import Agent
+from uttt.agents.az.agent import AlphaZeroAgent
+from uttt.mcts.base import MCTSConfig
 from uttt.eval.tournaments import play_series_with_records, save_series_json
 
 AGENTS = {
     "random": RandomAgent,
     "heuristic": HeuristicAgent,
+    "az": lambda: AlphaZeroAgent(mcts_config=MCTSConfig(n_simulations=2, temperature=0.0)),
+}
+
+AGENT_NAMES = {
+    "random": "RandomAgent",
+    "heuristic": "HeuristicAgent", 
+    "az": "AlphaZeroAgent",
 }
 
 def main():
@@ -22,7 +31,14 @@ def main():
     p.add_argument("--out_dir", default="runs")
     args = p.parse_args()
 
-    pkg = play_series_with_records(AGENTS[args.A], AGENTS[args.B], n_games=args.n_games, base_seed=args.seed)
+    pkg = play_series_with_records(
+        AGENTS[args.A], 
+        AGENTS[args.B], 
+        n_games=args.n_games, 
+        base_seed=args.seed,
+        agent_A_name=AGENT_NAMES[args.A],
+        agent_B_name=AGENT_NAMES[args.B]
+    )
     end = time.time()
     print(
         f"Tournament Time: {end - start:.2f}s\n"
