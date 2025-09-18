@@ -13,9 +13,25 @@ def agent_id_from_meta(meta: Dict[str, Any], role: str) -> str:
     """
     role is 'A' or 'B'. We build a stable ID from class name + kwargs.
     Example: 'MCTSAgent(c_explore=1.4,n_simulations=200,rollout=heuristic)'
+    For AlphaZero agents, include checkpoint information for distinction.
     """
     cls = meta[f"agent_{role}"]
     kwargs = meta.get(f"instantiate_kwargs_{role}", {}) or {}
+    
+    # Special handling for AlphaZero agents to include checkpoint info
+    if "AlphaZero" in cls or "AZ-" in cls:
+        # Use the full agent name that includes checkpoint info
+        agent_id = meta.get(f"agent_{role}_id", cls)
+        if agent_id != cls:
+            return agent_id
+        
+        # Fallback to constructing from kwargs if available
+        checkpoint = kwargs.get('checkpoint_path', 'Random')
+        if checkpoint != 'Random':
+            checkpoint_name = os.path.basename(checkpoint).replace('.pt', '')
+            return f"AlphaZero({checkpoint_name})"
+    
+    # Standard handling for other agent types
     if not kwargs:
         return cls
     # canonicalize keys for stability

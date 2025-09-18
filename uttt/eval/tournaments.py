@@ -13,6 +13,11 @@ import numpy as np
 from uttt.env.state import UTTTEnv
 from uttt.agents.random import RandomAgent
 from uttt.agents.heuristic import HeuristicAgent
+from uttt.eval.alphazero_factory import (
+    alphazero_agent_factory, 
+    get_alphazero_agent_name,
+    discover_alphazero_checkpoints
+)
 
 
 @dataclass
@@ -99,14 +104,14 @@ def play_series(
         # Handle both class types and callable factories
         if callable(AgentA) and not hasattr(AgentA, '__name__'):
             # It's a lambda/callable factory
-            A = AgentA()
+            A = AgentA(**instantiate_kwargs_A)
         else:
             # It's a class
             A = AgentA(**instantiate_kwargs_A)
             
         if callable(AgentB) and not hasattr(AgentB, '__name__'):
-            # It's a lambda/callable factory
-            B = AgentB()
+            # It's a lambda/callable factory  
+            B = AgentB(**instantiate_kwargs_B)
         else:
             # It's a class
             B = AgentB(**instantiate_kwargs_B)
@@ -185,14 +190,14 @@ def play_series_with_records(
         # Handle both class types and callable factories
         if callable(AgentA) and not hasattr(AgentA, '__name__'):
             # It's a lambda/callable factory
-            A = AgentA()
+            A = AgentA(**instantiate_kwargs_A)
         else:
             # It's a class
             A = AgentA(**instantiate_kwargs_A)
             
         if callable(AgentB) and not hasattr(AgentB, '__name__'):
             # It's a lambda/callable factory  
-            B = AgentB()
+            B = AgentB(**instantiate_kwargs_B)
         else:
             # It's a class
             B = AgentB(**instantiate_kwargs_B)
@@ -245,8 +250,13 @@ def play_series_with_records(
             elif callable(agent):
                 # For lambda/callable factories, try to infer from the created instance
                 try:
-                    instance = agent()
-                    return instance.__class__.__name__
+                    # Check if it's an AlphaZero factory
+                    if hasattr(agent, 'agent_type') and agent.agent_type == "AlphaZero":
+                        checkpoint_path = getattr(agent, 'checkpoint_path', None)
+                        return get_alphazero_agent_name(checkpoint_path, **instantiate_kwargs_A)
+                    else:
+                        instance = agent()
+                        return instance.__class__.__name__
                 except:
                     return 'UnknownAgent'
             else:
@@ -260,8 +270,13 @@ def play_series_with_records(
             elif callable(agent):
                 # For lambda/callable factories, try to infer from the created instance
                 try:
-                    instance = agent()
-                    return instance.__class__.__name__
+                    # Check if it's an AlphaZero factory
+                    if hasattr(agent, 'agent_type') and agent.agent_type == "AlphaZero":
+                        checkpoint_path = getattr(agent, 'checkpoint_path', None)
+                        return get_alphazero_agent_name(checkpoint_path, **instantiate_kwargs_B)
+                    else:
+                        instance = agent()
+                        return instance.__class__.__name__
                 except:
                     return 'UnknownAgent'
             else:
