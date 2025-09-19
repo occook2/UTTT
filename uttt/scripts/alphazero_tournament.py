@@ -48,7 +48,7 @@ def run_alphazero_vs_baseline(
         baseline_kwargs = {}
     elif baseline_type == "heuristic":
         baseline_agent = HeuristicAgent
-        baseline_kwargs = {"depth": 3}
+        baseline_kwargs = {}
     else:
         raise ValueError(f"Unknown baseline type: {baseline_type}")
     

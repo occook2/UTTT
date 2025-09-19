@@ -29,7 +29,6 @@ def create_alphazero_agent(
     # Load checkpoint if provided
     if checkpoint_path and os.path.exists(checkpoint_path):
         agent.load_weights(checkpoint_path)
-        print(f"Loaded AlphaZero agent from {checkpoint_path}")
     elif checkpoint_path:
         print(f"Warning: Checkpoint {checkpoint_path} not found, using random weights")
     else:

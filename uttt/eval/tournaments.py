@@ -98,8 +98,8 @@ def play_series(
     total_moves = 0
 
     for g in range(n_games):
-        if g % 20 == 0:
-            print(f"Starting game {g+1}/{n_games}...")
+        # Print progress for every game
+        print(f"Completed {g + 1}/{n_games} games")
         # Fresh agent instances each game (clean state)
         # Handle both class types and callable factories
         if callable(AgentA) and not hasattr(AgentA, '__name__'):
@@ -188,6 +188,7 @@ def play_series_with_records(
 
     for g in range(n_games):
         # Handle both class types and callable factories
+        print(f"Starting game {g + 1}/{n_games}")
         if callable(AgentA) and not hasattr(AgentA, '__name__'):
             # It's a lambda/callable factory
             A = AgentA(**instantiate_kwargs_A)
