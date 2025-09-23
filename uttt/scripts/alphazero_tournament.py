@@ -5,12 +5,13 @@ import argparse
 import os
 from typing import List, Tuple
 
-from uttt.eval.tournaments import play_series_with_records, save_series_json
+from uttt.eval.tournaments import play_series_with_records, play_series_with_openings, save_series_json
 from uttt.eval.alphazero_factory import (
     alphazero_agent_factory, 
     discover_alphazero_checkpoints,
     get_alphazero_agent_name
 )
+from uttt.eval.openings import DEFAULT_OPENING_BOOK, generate_opening_book
 from uttt.agents.random import RandomAgent
 from uttt.agents.heuristic import HeuristicAgent
 
@@ -20,7 +21,9 @@ def run_alphazero_vs_baseline(
     baseline_type: str = "random",
     n_games: int = 100,
     mcts_simulations: int = 100,
-    output_dir: str = "runs"
+    output_dir: str = "runs",
+    use_openings: bool = True,
+    opening_moves: int = 1
 ) -> str:
     """
     Run a tournament between an AlphaZero checkpoint and a baseline agent.
@@ -31,6 +34,8 @@ def run_alphazero_vs_baseline(
         n_games: Number of games to play
         mcts_simulations: MCTS simulations for AlphaZero
         output_dir: Directory to save results
+        use_openings: Whether to use opening book
+        opening_moves: Number of moves in each opening
         
     Returns:
         Path to saved results file
@@ -57,18 +62,42 @@ def run_alphazero_vs_baseline(
     baseline_name = baseline_type.capitalize() + "Agent"
     
     print(f"Running tournament: {az_name} vs {baseline_name}")
-    print(f"Games: {n_games}, MCTS simulations: {mcts_simulations}")
     
-    # Run the series
-    series = play_series_with_records(
-        AgentA=az_factory,
-        AgentB=baseline_agent,
-        n_games=n_games,
-        instantiate_kwargs_A={},  # AlphaZero factory already configured
-        instantiate_kwargs_B=baseline_kwargs,
-        agent_A_name=az_name,
-        agent_B_name=baseline_name
-    )
+    if use_openings:
+        # Calculate number of openings needed for desired total games
+        games_per_opening = 2  # Each opening plays 2 games (swap sides)
+        n_openings = max(1, n_games // games_per_opening)
+        
+        if n_openings <= len(DEFAULT_OPENING_BOOK):
+            opening_book = DEFAULT_OPENING_BOOK[:n_openings]
+        else:
+            opening_book = generate_opening_book(n_openings, opening_moves)
+        
+        print(f"Using {len(opening_book)} openings, {len(opening_book) * 2} total games")
+        print(f"MCTS simulations: {mcts_simulations}")
+        
+        # Use the new opening-based tournament
+        series = play_series_with_openings(
+            AgentA=az_factory,
+            AgentB=baseline_agent,
+            opening_book=opening_book,
+            instantiate_kwargs_A={},
+            instantiate_kwargs_B=baseline_kwargs,
+            agent_A_name=az_name,
+            agent_B_name=baseline_name
+        )
+    else:
+        print(f"Games: {n_games}, MCTS simulations: {mcts_simulations}")
+        # Original tournament without openings
+        series = play_series_with_records(
+            AgentA=az_factory,
+            AgentB=baseline_agent,
+            n_games=n_games,
+            instantiate_kwargs_A={},  # AlphaZero factory already configured
+            instantiate_kwargs_B=baseline_kwargs,
+            agent_A_name=az_name,
+            agent_B_name=baseline_name
+        )
     
     # Save results
     result_path = save_series_json(series, output_dir)
@@ -90,7 +119,9 @@ def run_alphazero_vs_alphazero(
     checkpoint_b: str,
     n_games: int = 100,
     mcts_simulations: int = 100,
-    output_dir: str = "runs"
+    output_dir: str = "runs",
+    use_openings: bool = True,
+    opening_moves: int = 1
 ) -> str:
     """
     Run a tournament between two AlphaZero checkpoints.
@@ -113,18 +144,41 @@ def run_alphazero_vs_alphazero(
     name_b = get_alphazero_agent_name(checkpoint_b, mcts_simulations=mcts_simulations)
     
     print(f"Running tournament: {name_a} vs {name_b}")
-    print(f"Games: {n_games}, MCTS simulations: {mcts_simulations}")
     
-    # Run the series
-    series = play_series_with_records(
-        AgentA=az_factory_a,
-        AgentB=az_factory_b,
-        n_games=n_games,
-        instantiate_kwargs_A={},  # AlphaZero factories already configured
-        instantiate_kwargs_B={},
-        agent_A_name=name_a,
-        agent_B_name=name_b
-    )
+    if use_openings:
+        games_per_opening = 2
+        n_openings = max(1, n_games // games_per_opening)
+        
+        if n_openings <= len(DEFAULT_OPENING_BOOK):
+            opening_book = DEFAULT_OPENING_BOOK[:n_openings]
+        else:
+            opening_book = generate_opening_book(n_openings, opening_moves)
+        
+        print(f"Using {len(opening_book)} openings, {len(opening_book) * 2} total games")
+        print(f"MCTS simulations: {mcts_simulations}")
+        
+        series = play_series_with_openings(
+            AgentA=az_factory_a,
+            AgentB=az_factory_b,
+            opening_book=opening_book,
+            instantiate_kwargs_A={},
+            instantiate_kwargs_B={},
+            agent_A_name=name_a,
+            agent_B_name=name_b
+        )
+    else:
+        print(f"Games: {n_games}, MCTS simulations: {mcts_simulations}")
+        
+        # Run the series
+        series = play_series_with_records(
+            AgentA=az_factory_a,
+            AgentB=az_factory_b,
+            n_games=n_games,
+            instantiate_kwargs_A={},  # AlphaZero factories already configured
+            instantiate_kwargs_B={},
+            agent_A_name=name_a,
+            agent_B_name=name_b
+        )
     
     # Save results
     result_path = save_series_json(series, output_dir)
@@ -172,6 +226,10 @@ def main():
     baseline_parser.add_argument('--simulations', type=int, default=100, 
                                 help='MCTS simulations per move')
     baseline_parser.add_argument('--output-dir', default='runs', help='Output directory')
+    baseline_parser.add_argument('--no-openings', action='store_true', 
+                               help='Disable opening book (play from empty board)')
+    baseline_parser.add_argument('--opening-moves', type=int, default=1,
+                               help='Number of moves in each opening')
     
     # vs alphazero command
     az_parser = subparsers.add_parser('vs-alphazero', help='Run vs another AlphaZero')
@@ -181,6 +239,10 @@ def main():
     az_parser.add_argument('--simulations', type=int, default=100, 
                           help='MCTS simulations per move')
     az_parser.add_argument('--output-dir', default='runs', help='Output directory')
+    az_parser.add_argument('--no-openings', action='store_true',
+                          help='Disable opening book (play from empty board)')
+    az_parser.add_argument('--opening-moves', type=int, default=1,
+                          help='Number of moves in each opening')
     
     args = parser.parse_args()
     
@@ -192,7 +254,9 @@ def main():
             args.baseline,
             args.games,
             args.simulations,
-            args.output_dir
+            args.output_dir,
+            use_openings=not args.no_openings,
+            opening_moves=args.opening_moves
         )
     elif args.command == 'vs-alphazero':
         run_alphazero_vs_alphazero(
@@ -200,7 +264,9 @@ def main():
             args.checkpoint_b,
             args.games,
             args.simulations,
-            args.output_dir
+            args.output_dir,
+            use_openings=not args.no_openings,
+            opening_moves=args.opening_moves
         )
     else:
         parser.print_help()

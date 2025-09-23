@@ -18,6 +18,7 @@ from uttt.eval.alphazero_factory import (
     get_alphazero_agent_name,
     discover_alphazero_checkpoints
 )
+from uttt.eval.openings import apply_opening_to_env
 
 
 @dataclass
@@ -343,3 +344,184 @@ if __name__ == "__main__":
         f"  Draws : {result.draws}\n"
         f"  Avg moves: {result.avg_moves:.2f}"
     )
+
+
+def play_series_with_openings(
+    AgentA,
+    AgentB, 
+    opening_book: List[List[int]],
+    instantiate_kwargs_A: Optional[Dict[str, Any]] = None,
+    instantiate_kwargs_B: Optional[Dict[str, Any]] = None,
+    agent_A_name: Optional[str] = None,
+    agent_B_name: Optional[str] = None
+) -> SeriesPackage:
+    """
+    Play a series of games using different opening positions.
+    For each opening, plays 2 games with agents swapping sides.
+    
+    Args:
+        AgentA, AgentB: Agent classes or factory functions
+        opening_book: List of opening move sequences
+        instantiate_kwargs_A, instantiate_kwargs_B: Agent creation kwargs
+        agent_A_name, agent_B_name: Names for results
+        
+    Returns:
+        SeriesPackage with results from all games
+    """
+    if instantiate_kwargs_A is None:
+        instantiate_kwargs_A = {}
+    if instantiate_kwargs_B is None:
+        instantiate_kwargs_B = {}
+    
+    wins_A = wins_B = draws = 0
+    total_moves = 0
+    all_games = []
+    
+    total_games = len(opening_book) * 2  # 2 games per opening (swap sides)
+    game_count = 0
+    
+    for opening_idx, opening_moves in enumerate(opening_book):
+        # Play 2 games per opening: A vs B, then B vs A
+        for swap_sides in [False, True]:
+            game_count += 1
+            print(f"Starting game {game_count}/{total_games}")
+            
+            # Create fresh agents for each game
+            if callable(AgentA) and not hasattr(AgentA, '__name__'):
+                # Factory function
+                A = AgentA(**instantiate_kwargs_A)
+            else:
+                # Class constructor
+                A = AgentA(**instantiate_kwargs_A)
+            
+            if callable(AgentB) and not hasattr(AgentB, '__name__'):
+                # Factory function  
+                B = AgentB(**instantiate_kwargs_B)
+            else:
+                # Class constructor
+                B = AgentB(**instantiate_kwargs_B)
+            
+            # Create environment and apply opening
+            env = UTTTEnv()
+            env = apply_opening_to_env(env, opening_moves)
+            
+            if env.terminated:
+                # Skip if opening leads to terminal state
+                continue
+            
+            # Record moves including opening
+            moves = opening_moves.copy()
+            
+            # Determine which agent plays first after opening
+            current_player = env.player
+            if swap_sides:
+                # Swap: B plays as current_player, A plays as other
+                if current_player == 1:  # X's turn
+                    agent_X, agent_O = B, A
+                    a_is_x = False
+                else:  # O's turn  
+                    agent_X, agent_O = A, B
+                    a_is_x = True
+            else:
+                # Normal: A plays as current_player, B plays as other
+                if current_player == 1:  # X's turn
+                    agent_X, agent_O = A, B
+                    a_is_x = True
+                else:  # O's turn
+                    agent_X, agent_O = B, A
+                    a_is_x = False
+            
+            # Play the game from the opening position
+            while not env.terminated:
+                current_player = env.player
+                agent = agent_X if current_player == 1 else agent_O
+                
+                action = agent.select_action(env)
+                moves.append(int(action))
+                
+                step_result = env.step(action)
+                # Note: env.step() modifies env in-place, so no reassignment needed
+            
+            # Get winner from the last step_result or check termination
+            winner = int(step_result.info.get("winner", 0)) if 'step_result' in locals() else 0
+            
+            # Create game record
+            game_record = GameRecord(
+                seed=None,
+                a_is_x=a_is_x,
+                winner=winner,
+                moves=moves,
+                moves_len=len(moves)
+            )
+            
+            # Update win counts
+            if game_record.winner == 1:  # X wins
+                if a_is_x:
+                    wins_A += 1
+                else:
+                    wins_B += 1
+            elif game_record.winner == -1:  # O wins
+                if a_is_x:
+                    wins_B += 1
+                else:
+                    wins_A += 1
+            else:  # Draw
+                draws += 1
+            
+            total_moves += game_record.moves_len
+            all_games.append(game_record)
+    
+    # Create series summary
+    summary = SeriesSummary(
+        n_games=len(all_games),
+        wins_A=wins_A,
+        wins_B=wins_B,
+        draws=draws,
+        avg_moves=(total_moves / max(1, len(all_games))),
+    )
+    
+    # Get agent names for metadata
+    def get_agent_name(agent):
+        if hasattr(agent, '__name__'):
+            return agent.__name__
+        elif hasattr(agent, '__class__'):
+            return agent.__class__.__name__
+        else:
+            return str(agent)
+    
+    if agent_A_name is None:
+        A_temp = AgentA(**instantiate_kwargs_A) if not callable(AgentA) or hasattr(AgentA, '__name__') else AgentA(**instantiate_kwargs_A)
+        agent_A_name = get_agent_name(A_temp)
+    
+    if agent_B_name is None:
+        B_temp = AgentB(**instantiate_kwargs_B) if not callable(AgentB) or hasattr(AgentB, '__name__') else AgentB(**instantiate_kwargs_B)
+        agent_B_name = get_agent_name(B_temp)
+    
+    def _canonical_agent_id(cls_name: str, kwargs: dict) -> str:
+        """Stable string identifier for an agent config."""
+        if not kwargs:
+            return cls_name
+        parts = [f"{k}={kwargs[k]}" for k in sorted(kwargs.keys())]
+        return f"{cls_name}(" + ",".join(parts) + ")"
+    
+    agent_A_id = _canonical_agent_id(agent_A_name, instantiate_kwargs_A)
+    agent_B_id = _canonical_agent_id(agent_B_name, instantiate_kwargs_B)
+    
+    # Create metadata following the same format as play_series_with_records
+    meta = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+        "agent_A": agent_A_name,
+        "agent_B": agent_B_name,
+        "agent_A_id": agent_A_id,
+        "agent_B_id": agent_B_id,
+        "base_seed": None,  # No single base seed for openings
+        "instantiate_kwargs_A": instantiate_kwargs_A,
+        "instantiate_kwargs_B": instantiate_kwargs_B,
+        "opening_book": opening_book,  # Additional info for opening-based games
+        "schema": {
+            "game": ["seed", "a_is_x", "winner", "moves", "moves_len"],
+            "winner_values": {"X": 1, "O": -1, "draw": 0},
+        },
+    }
+    
+    return SeriesPackage(meta=meta, summary=summary, games=all_games)
