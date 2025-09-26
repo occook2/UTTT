@@ -84,10 +84,15 @@ class AlphaZeroAgent(Agent):
             checkpoint_path: Path to saved model checkpoint
         """
         checkpoint = torch.load(checkpoint_path, map_location=self.device)
-        if 'model_state_dict' in checkpoint:
+        
+        # Extract the network state dict from various possible formats
+        if 'network_state_dict' in checkpoint:
+            self.network.load_state_dict(checkpoint['network_state_dict'])
+        elif 'model_state_dict' in checkpoint:
             self.network.load_state_dict(checkpoint['model_state_dict'])
         else:
             self.network.load_state_dict(checkpoint)
+        
         self.network.eval()
     
     def save_weights(self, checkpoint_path: str):

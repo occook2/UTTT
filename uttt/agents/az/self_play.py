@@ -111,12 +111,13 @@ class SelfPlayTrainer:
         
         return examples, game_stats
     
-    def generate_training_data(self, n_games: int) -> List[TrainingExample]:
+    def generate_training_data(self, n_games: int, show_progress: bool = False) -> List[TrainingExample]:
         """
         Generate training data from multiple self-play games.
         
         Args:
             n_games: Number of games to play
+            show_progress: Whether to show progress (used by standalone sessions)
             
         Returns:
             List of training examples
@@ -136,14 +137,17 @@ class SelfPlayTrainer:
             else:
                 game_results['draws'] += 1
             
-            if (game_idx + 1) % 10 == 0:
+            # Only show progress if explicitly requested (for standalone use)
+            if show_progress and (game_idx + 1) % 10 == 0:
                 print(f"Completed {game_idx + 1}/{n_games} games. "
                       f"Results: P1={game_results['wins_p1']}, "
                       f"P2={game_results['wins_p2']}, "
                       f"Draws={game_results['draws']}")
         
-        print(f"Self-play complete! Generated {len(all_examples)} training examples.")
-        print(f"Final results: {game_results}")
+        # Only show final results if explicitly requested
+        if show_progress:
+            print(f"Self-play complete! Generated {len(all_examples)} training examples.")
+            print(f"Final results: {game_results}")
         
         # Store examples for later use
         self.training_examples.extend(all_examples)
@@ -271,6 +275,6 @@ def run_self_play_session(
     )
     
     print(f"Starting self-play session: {n_games} games, {n_simulations} simulations/move")
-    training_examples = trainer.generate_training_data(n_games)
+    training_examples = trainer.generate_training_data(n_games, show_progress=True)
     
     return training_examples

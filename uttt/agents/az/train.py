@@ -105,25 +105,22 @@ class AlphaZeroTrainer:
     
     def train(self):
         """Run the complete AlphaZero training loop."""
-        print(f"Starting AlphaZero training for {self.config.n_epochs} epochs")
-        print(f"Device: {self.config.device}")
+        print(f"Starting AlphaZero training: {self.config.n_epochs} epochs")
         print(f"Games per epoch: {self.config.games_per_epoch}")
         print(f"MCTS simulations: {self.config.mcts_simulations}")
-        print("=" * 50)
+        print(f"Device: {self.config.device}")
+        print("-" * 60)
         
         for epoch in range(1, self.config.n_epochs + 1):
             epoch_start_time = time.time()
             
-            print(f"\n--- Epoch {epoch}/{self.config.n_epochs} ---")
+            # Generate self-play data
+            new_examples = self._generate_self_play_data(epoch)
             
-            # Step 1: Generate self-play data
-            print("Generating self-play data...")
-            new_examples = self._generate_self_play_data()
-            
-            # Step 2: Add to training dataset and manage size
+            # Add to training dataset and manage size
             self._update_training_data(new_examples)
             
-            # Step 3: Train neural network on collected data
+            # Train neural network on collected data
             if len(self.training_examples) >= self.config.batch_size:
                 print("Training neural network...")
                 epoch_loss, policy_loss, value_loss = self._train_network()
@@ -138,7 +135,7 @@ class AlphaZeroTrainer:
             else:
                 print(f"Not enough training data yet ({len(self.training_examples)} samples)")
             
-            # Step 4: Save model checkpoint
+            # Save model checkpoint
             if epoch % self.config.save_every == 0:
                 self._save_checkpoint(epoch)
             
@@ -146,15 +143,14 @@ class AlphaZeroTrainer:
             print(f"Epoch {epoch} completed in {epoch_time:.2f}s")
             print(f"Total games played: {self.training_stats['games_played']}")
             print(f"Training examples: {len(self.training_examples)}")
+            print("-" * 60)
         
-        print("\n" + "=" * 50)
-        print("Training completed!")
+        # Save final model
         self._save_final_model()
-        self._print_training_summary()
+        print("Training completed!")
     
-    def _generate_self_play_data(self) -> List[TrainingExample]:
-        """Generate training data through self-play."""
-        # Configure MCTS for training
+    def _generate_self_play_data(self, epoch_num: int) -> List[TrainingExample]:
+        """Generate training data through self-play with clean progress output."""
         mcts_config = MCTSConfig(
             n_simulations=self.config.mcts_simulations,
             c_puct=1.0,
@@ -162,7 +158,6 @@ class AlphaZeroTrainer:
             use_transposition_table=True
         )
         
-        # Create self-play trainer
         trainer = SelfPlayTrainer(
             agent=self.agent,
             mcts_config=mcts_config,
@@ -170,10 +165,23 @@ class AlphaZeroTrainer:
             collect_data=True
         )
         
-        # Generate training examples
-        examples = trainer.generate_training_data(self.config.games_per_epoch)
-        self.training_stats['games_played'] += self.config.games_per_epoch
+        examples = []
+        total_games = self.config.games_per_epoch
         
+        # Show initial progress line
+        print(f"Running Epoch {epoch_num}: Completed 0/{total_games} games", end='', flush=True)
+        
+        for i in range(total_games):
+            game_examples, _ = trainer.play_game()
+            examples.extend(game_examples)
+            
+            # Update progress in-place
+            print(f"\rRunning Epoch {epoch_num}: Completed {i+1}/{total_games} games", end='', flush=True)
+        
+        # Move to next line after completion
+        print()
+        
+        self.training_stats['games_played'] += total_games
         return examples
     
     def _update_training_data(self, new_examples: List[TrainingExample]):
@@ -292,15 +300,15 @@ class AlphaZeroTrainer:
 
 def main():
     """Main training function."""
-    # Configure training
+    # Create training configuration
     config = TrainingConfig(
-        n_epochs=50,
-        games_per_epoch=25,  # Start small for testing
+        n_epochs=20,           # More epochs for better training
+        games_per_epoch=25,    # Moderate number of games
+        mcts_simulations=200,  # Good balance of strength vs speed
         batch_size=32,
         learning_rate=0.001,
-        mcts_simulations=100,  # Reduced for faster training
-        save_every=5,
-        checkpoint_dir="checkpoints/alphazero"
+        save_every=1,          # Save every epoch to track progress
+        checkpoint_dir="checkpoints"
     )
     
     # Create trainer and start training

@@ -14,6 +14,8 @@ from uttt.eval.alphazero_factory import (
 from uttt.eval.openings import DEFAULT_OPENING_BOOK, generate_opening_book
 from uttt.agents.random import RandomAgent
 from uttt.agents.heuristic import HeuristicAgent
+# Import TrainingConfig to allow checkpoint loading
+from uttt.agents.az.train import TrainingConfig
 
 
 def run_alphazero_vs_baseline(
