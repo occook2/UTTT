@@ -201,7 +201,12 @@ class ReplayApp:
                     ry0 = y0 + mr * 3 * CELL
                     rx1 = rx0 + 3 * CELL
                     ry1 = ry0 + 3 * CELL
-                    color = "#e6f7ff" if owner == 1 else "#ffe6e6"
+                    if owner == 1:
+                        color = "#e6f7ff"  # light blue for X
+                    elif owner == -1:
+                        color = "#ffe6e6"  # light red for O
+                    else:
+                        color = "#f0f0f0"  # light grey for draw
                     self.canvas.create_rectangle(rx0, ry0, rx1, ry1, fill=color, outline="")
                     self.canvas.create_rectangle(rx0, ry0, rx1, ry1, outline="black", width=BOLD_W)
 
