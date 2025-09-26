@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
+import torch.multiprocessing as mp
 
 from uttt.agents.az.agent import AlphaZeroAgent
 from uttt.agents.az.net import AlphaZeroNetUTTT
@@ -33,6 +34,8 @@ class TrainingConfig:
     # Self-play parameters
     mcts_simulations: int = 400
     temperature_threshold: int = 30
+    use_multiprocessing: bool = True  # Enable parallel self-play
+    num_processes: int = 5  # None = use all CPUs
     
     # Model saving
     save_every: int = 10  # Save model every N epochs
@@ -165,8 +168,37 @@ class AlphaZeroTrainer:
             collect_data=True
         )
         
-        examples = []
         total_games = self.config.games_per_epoch
+        
+        if self.config.use_multiprocessing and total_games > 1:
+            # Use parallel self-play
+            num_processes = self.config.num_processes
+            if num_processes is None:
+                num_processes = min(mp.cpu_count(), total_games)
+            
+            print(f"Running Epoch {epoch_num}: Generating {total_games} games using {num_processes} processes...")
+            
+            try:
+                examples = trainer.generate_training_data_parallel(
+                    n_games=total_games,
+                    num_processes=num_processes,
+                    show_progress=False  # We handle progress here
+                )
+                print(f"Epoch {epoch_num}: Completed all {total_games} games in parallel")
+            except Exception as e:
+                print(f"\nParallel execution failed, falling back to sequential: {e}")
+                # Fallback to sequential execution
+                examples = self._generate_sequential_games(trainer, epoch_num, total_games)
+        else:
+            # Use sequential self-play
+            examples = self._generate_sequential_games(trainer, epoch_num, total_games)
+        
+        self.training_stats['games_played'] += total_games
+        return examples
+    
+    def _generate_sequential_games(self, trainer, epoch_num: int, total_games: int) -> List[TrainingExample]:
+        """Generate games sequentially with progress updates."""
+        examples = []
         
         # Show initial progress line
         print(f"Running Epoch {epoch_num}: Completed 0/{total_games} games", end='', flush=True)
@@ -181,7 +213,6 @@ class AlphaZeroTrainer:
         # Move to next line after completion
         print()
         
-        self.training_stats['games_played'] += total_games
         return examples
     
     def _update_training_data(self, new_examples: List[TrainingExample]):
@@ -302,13 +333,15 @@ def main():
     """Main training function."""
     # Create training configuration
     config = TrainingConfig(
-        n_epochs=20,           # More epochs for better training
+        n_epochs=2,           # More epochs for better training
         games_per_epoch=25,    # Moderate number of games
-        mcts_simulations=200,  # Good balance of strength vs speed
+        mcts_simulations=10,  # Good balance of strength vs speed
         batch_size=32,
         learning_rate=0.001,
         save_every=1,          # Save every epoch to track progress
-        checkpoint_dir="checkpoints"
+        checkpoint_dir="checkpoints",
+        use_multiprocessing=True,  # Enable parallel self-play
+        num_processes=10    # Use all available CPUs
     )
     
     # Create trainer and start training

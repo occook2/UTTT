@@ -22,7 +22,7 @@ def run_alphazero_vs_baseline(
     checkpoint_path: str,
     baseline_type: str = "random",
     n_games: int = 100,
-    mcts_simulations: int = 100,
+    mcts_simulations: int = 10,
     output_dir: str = "runs",
     use_openings: bool = True,
     opening_moves: int = 1

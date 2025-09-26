@@ -7,10 +7,45 @@ from typing import List, Tuple, Dict, Any
 from dataclasses import dataclass
 import numpy as np
 import torch
+import torch.multiprocessing as mp
+from multiprocessing import Pool
+import copy
 
 from uttt.env.state import UTTTEnv
 from uttt.agents.az.agent import AlphaZeroAgent
 from uttt.mcts.base import MCTSConfig, GenericMCTS
+
+
+def _play_single_game_worker(args):
+    """
+    Worker function for multiprocessing self-play games.
+    
+    Args:
+        args: Tuple containing (agent_state_dict, mcts_config, temperature_threshold, game_idx, device)
+    
+    Returns:
+        Tuple of (training_examples, game_stats)
+    """
+    agent_state_dict, mcts_config, temperature_threshold, game_idx, device = args
+    
+    # Create a fresh agent instance for this process
+    from uttt.agents.az.net import AlphaZeroNetUTTT
+    network = AlphaZeroNetUTTT().to(device)
+    network.load_state_dict(agent_state_dict)
+    network.eval()
+    
+    agent = AlphaZeroAgent(network=network, device=device)
+    
+    # Create trainer for this game
+    trainer = SelfPlayTrainer(
+        agent=agent,
+        mcts_config=mcts_config,
+        temperature_threshold=temperature_threshold,
+        collect_data=True
+    )
+    
+    # Play the game and return results
+    return trainer.play_game()
 
 
 @dataclass
@@ -154,6 +189,68 @@ class SelfPlayTrainer:
         
         return all_examples
     
+    def generate_training_data_parallel(self, n_games: int, num_processes: int = None, show_progress: bool = False) -> List[TrainingExample]:
+        """
+        Generate training data from multiple self-play games using multiprocessing.
+        
+        Args:
+            n_games: Number of games to play
+            num_processes: Number of parallel processes (default: CPU count)
+            show_progress: Whether to show progress (used by standalone sessions)
+            
+        Returns:
+            List of training examples
+        """
+        if num_processes is None:
+            num_processes = min(mp.cpu_count(), n_games)  # Don't use more processes than games
+        
+        if show_progress:
+            print(f"Starting parallel self-play: {n_games} games using {num_processes} processes")
+        
+        # Get agent's network state dict for sharing across processes
+        agent_state_dict = self.agent.network.state_dict()
+        
+        # Prepare arguments for each game
+        args_list = [
+            (agent_state_dict, self.mcts_config, self.temperature_threshold, i, self.agent.device)
+            for i in range(n_games)
+        ]
+        
+        # Run games in parallel
+        try:
+            with Pool(num_processes) as pool:
+                results = pool.map(_play_single_game_worker, args_list)
+        except Exception as e:
+            if show_progress:
+                print(f"Parallel execution failed, falling back to sequential: {e}")
+            # Fallback to sequential execution
+            return self.generate_training_data(n_games, show_progress)
+        
+        # Collect all examples and statistics
+        all_examples = []
+        game_results = {'wins_p1': 0, 'wins_p2': 0, 'draws': 0}
+        
+        for examples, stats in results:
+            all_examples.extend(examples)
+            
+            # Track game results (assuming winner values are 1, -1, 0)
+            if stats['winner'] == 1:
+                game_results['wins_p1'] += 1
+            elif stats['winner'] == -1:
+                game_results['wins_p2'] += 1
+            else:
+                game_results['draws'] += 1
+        
+        # Only show final results if explicitly requested
+        if show_progress:
+            print(f"Parallel self-play complete! Generated {len(all_examples)} training examples.")
+            print(f"Final results: {game_results}")
+        
+        # Store examples for later use
+        self.training_examples.extend(all_examples)
+        
+        return all_examples
+    
     def _policy_dict_to_array(self, policy_dict: Dict[int, int], env: UTTTEnv) -> np.ndarray:
         """
         Convert MCTS policy dictionary to normalized numpy array.
@@ -245,7 +342,9 @@ def run_self_play_session(
     agent: AlphaZeroAgent,
     n_games: int = 100,
     n_simulations: int = 400,
-    temperature_threshold: int = 30
+    temperature_threshold: int = 30,
+    use_multiprocessing: bool = True,
+    num_processes: int = None
 ) -> List[TrainingExample]:
     """
     Convenience function to run a self-play training session.
@@ -275,6 +374,14 @@ def run_self_play_session(
     )
     
     print(f"Starting self-play session: {n_games} games, {n_simulations} simulations/move")
-    training_examples = trainer.generate_training_data(n_games, show_progress=True)
+    
+    if use_multiprocessing and n_games > 1:
+        training_examples = trainer.generate_training_data_parallel(
+            n_games=n_games, 
+            num_processes=num_processes,
+            show_progress=True
+        )
+    else:
+        training_examples = trainer.generate_training_data(n_games, show_progress=True)
     
     return training_examples
