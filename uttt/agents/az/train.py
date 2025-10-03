@@ -334,14 +334,14 @@ def main():
     # Create training configuration
     config = TrainingConfig(
         n_epochs=2,           # More epochs for better training
-        games_per_epoch=25,    # Moderate number of games
-        mcts_simulations=10,  # Good balance of strength vs speed
+        games_per_epoch=10,    # Moderate number of games
+        mcts_simulations=5,  # Good balance of strength vs speed
         batch_size=32,
         learning_rate=0.001,
         save_every=1,          # Save every epoch to track progress
         checkpoint_dir="checkpoints",
         use_multiprocessing=True,  # Enable parallel self-play
-        num_processes=10    # Use all available CPUs
+        num_processes=5    # Use all available CPUs
     )
     
     # Create trainer and start training
