@@ -4,6 +4,8 @@ Combines self-play data generation with neural network training.
 """
 import os
 import time
+import json
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import numpy as np
@@ -46,6 +48,158 @@ class TrainingConfig:
     
     # Training data management
     max_training_samples: int = 50000  # Keep only the most recent samples
+    
+    # UI data saving (separate from training)
+    save_ui_data: bool = True
+
+
+def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, config: TrainingConfig):
+    """
+    Save training examples in a UI-friendly format that reconstructs games.
+    This is separate from the actual training data and used only for inspection.
+    
+    Args:
+        examples: Raw training examples from self-play
+        epoch_num: Current training epoch
+        config: Training configuration
+    """
+    # Create training examples directory
+    ui_data_dir = os.path.join(config.checkpoint_dir, "training_ui_data")
+    os.makedirs(ui_data_dir, exist_ok=True)
+    
+    # Reconstruct games from training examples
+    games = reconstruct_games_from_examples(examples)
+    
+    # Create UI-friendly data structure
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    ui_data = {
+        "meta": {
+            "epoch": epoch_num,
+            "timestamp": timestamp,
+            "total_examples": len(examples),
+            "total_games": len(games),
+            "mcts_simulations": config.mcts_simulations,
+            "use_symmetry_augmentation": getattr(config, 'use_symmetry_augmentation', False),
+            "temperature_threshold": getattr(config, 'temperature_threshold', 30)
+        },
+        "games": games
+    }
+    
+    # Save to JSON file
+    filename = f"training_games_epoch_{epoch_num}_{timestamp}.json"
+    filepath = os.path.join(ui_data_dir, filename)
+    
+    with open(filepath, 'w') as f:
+        json.dump(ui_data, f, indent=2)
+    
+    print(f"Saved {len(games)} games ({len(examples)} examples) for UI inspection: {filename}")
+
+
+def reconstruct_games_from_examples(examples: List[TrainingExample]) -> List[Dict[str, Any]]:
+    """
+    Reconstruct individual games from flat list of training examples.
+    
+    The key insight is that games are stored sequentially, and we can detect
+    game boundaries by looking for significant drops in piece count between
+    consecutive examples (indicating a new game started).
+    
+    Args:
+        examples: Flat list of training examples
+        
+    Returns:
+        List of game dictionaries, each containing moves and metadata
+    """
+    if not examples:
+        return []
+    
+    games = []
+    current_game = []
+    
+    for i, example in enumerate(examples):
+        # Convert example to move data
+        piece_count = int(np.sum(example.state[1]) + np.sum(example.state[2]))
+        move_data = {
+            "move_number": len(current_game) + 1,
+            "state": example.state.tolist(),  # Convert numpy to list for JSON
+            "policy": example.policy.tolist(),
+            "value": float(example.value),
+            "player": 1 if len(current_game) % 2 == 0 else -1,  # Alternating players
+            "piece_count": piece_count,
+            "policy_max": float(np.max(example.policy)),
+            "policy_sum": float(np.sum(example.policy))
+        }
+        
+        # Check if this should start a new game
+        should_start_new_game = False
+        
+        if current_game:
+            # Get piece count from previous move
+            prev_piece_count = current_game[-1]["piece_count"]
+            
+            # If current move has significantly fewer pieces, it's likely a new game
+            if piece_count < prev_piece_count - 1:  # Allow for 1 piece difference due to normal play
+                should_start_new_game = True
+            
+            # Also check if we've been building up pieces consistently and suddenly dropped
+            elif len(current_game) >= 3:
+                # Look at piece count trend
+                recent_counts = [move["piece_count"] for move in current_game[-3:]]
+                if all(recent_counts[i] <= recent_counts[i+1] for i in range(len(recent_counts)-1)):
+                    # Pieces were increasing, now dropped significantly
+                    if piece_count < min(recent_counts):
+                        should_start_new_game = True
+        
+        # If we should start a new game, save the current one first
+        if should_start_new_game and current_game:
+            # Finalize current game
+            final_value = current_game[-1]["value"]
+            winner = None
+            if final_value > 0.1:
+                winner = 1 if (len(current_game) - 1) % 2 == 0 else -1
+            elif final_value < -0.1:
+                winner = -1 if (len(current_game) - 1) % 2 == 0 else 1
+            else:
+                winner = 0  # Draw
+            
+            game_data = {
+                "game_id": len(games),
+                "moves": current_game,
+                "game_length": len(current_game),
+                "winner": winner,
+                "final_value": float(final_value),
+                "total_pieces": current_game[-1]["piece_count"]
+            }
+            
+            games.append(game_data)
+            current_game = []
+        
+        # Add current move to game
+        current_game.append(move_data)
+    
+    # Add the final game
+    if current_game:
+        final_value = current_game[-1]["value"]
+        winner = None
+        if final_value > 0.1:
+            winner = 1 if (len(current_game) - 1) % 2 == 0 else -1
+        elif final_value < -0.1:
+            winner = -1 if (len(current_game) - 1) % 2 == 0 else 1
+        else:
+            winner = 0  # Draw
+        
+        game_data = {
+            "game_id": len(games),
+            "moves": current_game,
+            "game_length": len(current_game),
+            "winner": winner,
+            "final_value": float(final_value),
+            "total_pieces": current_game[-1]["piece_count"]
+        }
+        
+        games.append(game_data)
+    
+    return games
 
 
 class AlphaZeroDataset(Dataset):
@@ -119,6 +273,10 @@ class AlphaZeroTrainer:
             
             # Generate self-play data
             new_examples = self._generate_self_play_data(epoch)
+            
+            # Save UI-friendly data for inspection (separate from training)
+            if getattr(self.config, 'save_ui_data', True):
+                save_training_games_for_ui(new_examples, epoch, self.config)
             
             # Add to training dataset and manage size
             self._update_training_data(new_examples)
