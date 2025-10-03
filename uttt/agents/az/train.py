@@ -280,7 +280,7 @@ class AlphaZeroTrainer:
             
             # Apply symmetry augmentation to get 4x training data
             aug_examples = augment_examples_with_rotations(new_examples)
-            print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (4x with rotations)")
+            print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (8x with rotations and reflections)")
             
             # Save UI-friendly data for inspection (separate from training)
             if getattr(self.config, 'save_ui_data', True):

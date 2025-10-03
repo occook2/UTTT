@@ -31,6 +31,15 @@ def rotate_example(example: TrainingExample, k: int) -> TrainingExample:
         value=example.value
     )
 
+def reflect_example(example: TrainingExample) -> TrainingExample:
+    # Reflect (mirror) the board state and policy horizontally (axis=2)
+    reflected_state = np.flip(example.state, axis=2).copy()
+    reflected_policy = np.flip(example.policy.reshape(9, 9), axis=1).flatten().copy()
+    return TrainingExample(
+        state=reflected_state,
+        policy=reflected_policy,
+        value=example.value
+    )
 
 def augment_examples_with_rotations(examples: List[TrainingExample]) -> List[TrainingExample]:
     """
@@ -43,10 +52,11 @@ def augment_examples_with_rotations(examples: List[TrainingExample]) -> List[Tra
         Augmented list with 4x examples: [original, 90°, 180°, 270° rotations]
     """
     aug_examples = []
-    
+    ref_examples = []
     # Add all rotations: 0°, 90°, 180°, 270°
     for k in range(4):
         for example in examples:
-            aug_examples.append(rotate_example(example, k))
-    
-    return aug_examples
+            rotated_example = rotate_example(example, k)
+            aug_examples.append(rotated_example)
+            ref_examples.append(reflect_example(rotated_example))
+    return aug_examples + ref_examples
