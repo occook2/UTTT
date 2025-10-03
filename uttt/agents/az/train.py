@@ -20,6 +20,7 @@ from uttt.agents.az.agent import AlphaZeroAgent
 from uttt.agents.az.net import AlphaZeroNetUTTT
 from uttt.agents.az.loss import AlphaZeroLoss
 from uttt.agents.az.self_play import SelfPlayTrainer, TrainingExample, run_self_play_session
+from uttt.agents.az.symmetry import augment_examples_with_rotations
 from uttt.mcts.base import MCTSConfig
 
 
@@ -48,6 +49,9 @@ class TrainingConfig:
     
     # Training data management
     max_training_samples: int = 50000  # Keep only the most recent samples
+    
+    # Symmetry augmentation
+    use_symmetry_augmentation: bool = True  # Apply 4-fold rotational symmetry
     
     # UI data saving (separate from training)
     save_ui_data: bool = True
@@ -80,7 +84,7 @@ def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, 
             "total_examples": len(examples),
             "total_games": len(games),
             "mcts_simulations": config.mcts_simulations,
-            "use_symmetry_augmentation": getattr(config, 'use_symmetry_augmentation', False),
+            "use_symmetry_augmentation": getattr(config, 'use_symmetry_augmentation', True),
             "temperature_threshold": getattr(config, 'temperature_threshold', 30)
         },
         "games": games
@@ -274,12 +278,16 @@ class AlphaZeroTrainer:
             # Generate self-play data
             new_examples = self._generate_self_play_data(epoch)
             
+            # Apply symmetry augmentation to get 4x training data
+            aug_examples = augment_examples_with_rotations(new_examples)
+            print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (4x with rotations)")
+            
             # Save UI-friendly data for inspection (separate from training)
             if getattr(self.config, 'save_ui_data', True):
-                save_training_games_for_ui(new_examples, epoch, self.config)
+                save_training_games_for_ui(aug_examples, epoch, self.config)
             
             # Add to training dataset and manage size
-            self._update_training_data(new_examples)
+            self._update_training_data(aug_examples)
             
             # Train neural network on collected data
             if len(self.training_examples) >= self.config.batch_size:
