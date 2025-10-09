@@ -5,6 +5,7 @@ Combines self-play data generation with neural network training.
 import os
 import time
 import json
+import yaml
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -55,6 +56,13 @@ class TrainingConfig:
     
     # UI data saving (separate from training)
     save_ui_data: bool = True
+
+
+def load_config_from_yaml(filepath: str) -> TrainingConfig:
+    """Load training configuration from a YAML file."""
+    with open(filepath, 'r') as f:
+        config_dict = yaml.safe_load(f)
+    return TrainingConfig(**config_dict)
 
 
 def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, config: TrainingConfig):
@@ -497,18 +505,24 @@ class AlphaZeroTrainer:
 
 def main():
     """Main training function."""
-    # Create training configuration
-    config = TrainingConfig(
-        n_epochs=2,           # More epochs for better training
-        games_per_epoch=10,    # Moderate number of games
-        mcts_simulations=5,  # Good balance of strength vs speed
-        batch_size=32,
-        learning_rate=0.001,
-        save_every=1,          # Save every epoch to track progress
-        checkpoint_dir="checkpoints",
-        use_multiprocessing=True,  # Enable parallel self-play
-        num_processes=5    # Use all available CPUs
-    )
+    # Load config from file (or fallback to defaults)
+    config_path = "config.yaml"
+    if os.path.exists(config_path):
+        print(f"Loading config from {config_path}")
+        config = load_config_from_yaml(config_path)
+    else:
+        print(f"Config file {config_path} not found, using default values")
+        config = TrainingConfig(
+            n_epochs=5,           # More epochs for better training
+            games_per_epoch=25,    # Moderate number of games
+            mcts_simulations=3,  # Good balance of strength vs speed
+            batch_size=32,
+            learning_rate=0.001,
+            save_every=1,          # Save every epoch to track progress
+            checkpoint_dir="checkpoints",
+            use_multiprocessing=True,  # Enable parallel self-play
+            num_processes=5    # Use all available CPUs
+        )
     
     # Create trainer and start training
     trainer = AlphaZeroTrainer(config)

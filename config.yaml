@@ -1,0 +1,30 @@
+# AlphaZero Training Configuration
+
+# Training parameters
+n_epochs: 2
+games_per_epoch: 2
+batch_size: 32
+learning_rate: 0.001
+weight_decay: 0.0001
+
+# Self-play parameters
+mcts_simulations: 3
+temperature_threshold: 30
+use_multiprocessing: true
+num_processes: 5
+
+# Model saving
+save_every: 1
+checkpoint_dir: "checkpoints"
+
+# Device
+device: "cuda"
+
+# Training data management
+max_training_samples: 50000
+
+# Symmetry augmentation
+use_symmetry_augmentation: true
+
+# UI data saving (separate from training)
+save_ui_data: true
