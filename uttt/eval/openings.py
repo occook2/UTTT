@@ -30,8 +30,7 @@ def generate_random_opening(n_moves: int = 1) -> List[int]:
         action = random.choice(legal_actions)
         opening_moves.append(action)
         
-        step_result = env.step(action)
-        env = step_result.env
+        env.step(action)
     
     return opening_moves
 

@@ -3,6 +3,7 @@ Convenience script for running tournaments with AlphaZero agents.
 """
 import argparse
 import os
+import time
 from typing import List, Tuple
 
 from uttt.eval.tournaments import play_series_with_records, play_series_with_openings, save_series_json
@@ -22,7 +23,7 @@ def run_alphazero_vs_baseline(
     checkpoint_path: str,
     baseline_type: str = "random",
     n_games: int = 100,
-    mcts_simulations: int = 100,
+    mcts_simulations: int = 10,
     output_dir: str = "runs",
     use_openings: bool = True,
     opening_moves: int = 1
@@ -65,6 +66,9 @@ def run_alphazero_vs_baseline(
     
     print(f"Running tournament: {az_name} vs {baseline_name}")
     
+    # Start timing the tournament
+    start_time = time.time()
+    
     if use_openings:
         # Calculate number of openings needed for desired total games
         games_per_opening = 2  # Each opening plays 2 games (swap sides)
@@ -101,6 +105,10 @@ def run_alphazero_vs_baseline(
             agent_B_name=baseline_name
         )
     
+    # Calculate tournament duration
+    end_time = time.time()
+    duration = end_time - start_time
+    
     # Save results
     result_path = save_series_json(series, output_dir)
     
@@ -111,6 +119,7 @@ def run_alphazero_vs_baseline(
     print(f"  {baseline_name} wins: {s.wins_B} ({s.wins_B/s.n_games*100:.1f}%)")
     print(f"  Draws: {s.draws} ({s.draws/s.n_games*100:.1f}%)")
     print(f"  Average moves: {s.avg_moves:.1f}")
+    print(f"  Tournament duration: {duration:.2f} seconds ({duration/60:.2f} minutes)")
     print(f"  Results saved to: {result_path}")
     
     return result_path
@@ -147,6 +156,9 @@ def run_alphazero_vs_alphazero(
     
     print(f"Running tournament: {name_a} vs {name_b}")
     
+    # Start timing the tournament
+    start_time = time.time()
+    
     if use_openings:
         games_per_opening = 2
         n_openings = max(1, n_games // games_per_opening)
@@ -182,6 +194,10 @@ def run_alphazero_vs_alphazero(
             agent_B_name=name_b
         )
     
+    # Calculate tournament duration
+    end_time = time.time()
+    duration = end_time - start_time
+    
     # Save results
     result_path = save_series_json(series, output_dir)
     
@@ -192,6 +208,7 @@ def run_alphazero_vs_alphazero(
     print(f"  {name_b} wins: {s.wins_B} ({s.wins_B/s.n_games*100:.1f}%)")
     print(f"  Draws: {s.draws} ({s.draws/s.n_games*100:.1f}%)")
     print(f"  Average moves: {s.avg_moves:.1f}")
+    print(f"  Tournament duration: {duration:.2f} seconds ({duration/60:.2f} minutes)")
     print(f"  Results saved to: {result_path}")
     
     return result_path

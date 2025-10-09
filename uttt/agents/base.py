@@ -8,8 +8,6 @@ from uttt.env.state import UTTTEnv
 class AgentLike(Protocol):
     def select_action(self, env: UTTTEnv) -> int: ...
     # Optional lifecycle hooks (no-ops by default if not implemented)
-    def reset(self) -> None: ...
-    def seed(self, seed: Optional[int]) -> None: ...
 
 # (Optional) Nominal base class if you prefer inheritance + IDE help.
 class Agent(AgentLike):
@@ -17,14 +15,6 @@ class Agent(AgentLike):
 
     def __init__(self, name: Optional[str] = None) -> None:
         self.name = name or self.__class__.__name__
-
-    def reset(self) -> None:
-        """Called between games/matches, override if the agent keeps internal state."""
-        return None
-
-    def seed(self, seed: Optional[int]) -> None:
-        """Set internal RNG seed if the agent has one."""
-        return None
 
     def select_action(self, env: UTTTEnv) -> int:  # pragma: no cover - abstract
         raise NotImplementedError("Agents must implement select_action(env) -> int")

@@ -4,6 +4,9 @@ Combines self-play data generation with neural network training.
 """
 import os
 import time
+import json
+import yaml
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import numpy as np
@@ -12,11 +15,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
+import torch.multiprocessing as mp
 
 from uttt.agents.az.agent import AlphaZeroAgent
 from uttt.agents.az.net import AlphaZeroNetUTTT
 from uttt.agents.az.loss import AlphaZeroLoss
 from uttt.agents.az.self_play import SelfPlayTrainer, TrainingExample, run_self_play_session
+from uttt.agents.az.symmetry import augment_examples_with_rotations
 from uttt.mcts.base import MCTSConfig
 
 
@@ -33,6 +38,8 @@ class TrainingConfig:
     # Self-play parameters
     mcts_simulations: int = 400
     temperature_threshold: int = 30
+    use_multiprocessing: bool = True  # Enable parallel self-play
+    num_processes: int = 5  # None = use all CPUs
     
     # Model saving
     save_every: int = 10  # Save model every N epochs
@@ -43,6 +50,168 @@ class TrainingConfig:
     
     # Training data management
     max_training_samples: int = 50000  # Keep only the most recent samples
+    
+    # Symmetry augmentation
+    use_symmetry_augmentation: bool = True  # Apply 4-fold rotational symmetry
+    
+    # UI data saving (separate from training)
+    save_ui_data: bool = True
+
+
+def load_config_from_yaml(filepath: str) -> TrainingConfig:
+    """Load training configuration from a YAML file."""
+    with open(filepath, 'r') as f:
+        config_dict = yaml.safe_load(f)
+    return TrainingConfig(**config_dict)
+
+
+def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, config: TrainingConfig):
+    """
+    Save training examples in a UI-friendly format that reconstructs games.
+    This is separate from the actual training data and used only for inspection.
+    
+    Args:
+        examples: Raw training examples from self-play
+        epoch_num: Current training epoch
+        config: Training configuration
+    """
+    # Create training examples directory
+    ui_data_dir = os.path.join(config.checkpoint_dir, "training_ui_data")
+    os.makedirs(ui_data_dir, exist_ok=True)
+    
+    # Reconstruct games from training examples
+    games = reconstruct_games_from_examples(examples)
+    
+    # Create UI-friendly data structure
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    ui_data = {
+        "meta": {
+            "epoch": epoch_num,
+            "timestamp": timestamp,
+            "total_examples": len(examples),
+            "total_games": len(games),
+            "mcts_simulations": config.mcts_simulations,
+            "use_symmetry_augmentation": getattr(config, 'use_symmetry_augmentation', True),
+            "temperature_threshold": getattr(config, 'temperature_threshold', 30)
+        },
+        "games": games
+    }
+    
+    # Save to JSON file
+    filename = f"training_games_epoch_{epoch_num}_{timestamp}.json"
+    filepath = os.path.join(ui_data_dir, filename)
+    
+    with open(filepath, 'w') as f:
+        json.dump(ui_data, f, indent=2)
+    
+    print(f"Saved {len(games)} games ({len(examples)} examples) for UI inspection: {filename}")
+
+
+def reconstruct_games_from_examples(examples: List[TrainingExample]) -> List[Dict[str, Any]]:
+    """
+    Reconstruct individual games from flat list of training examples.
+    
+    The key insight is that games are stored sequentially, and we can detect
+    game boundaries by looking for significant drops in piece count between
+    consecutive examples (indicating a new game started).
+    
+    Args:
+        examples: Flat list of training examples
+        
+    Returns:
+        List of game dictionaries, each containing moves and metadata
+    """
+    if not examples:
+        return []
+    
+    games = []
+    current_game = []
+    
+    for i, example in enumerate(examples):
+        # Convert example to move data
+        piece_count = int(np.sum(example.state[1]) + np.sum(example.state[2]))
+        move_data = {
+            "move_number": len(current_game) + 1,
+            "state": example.state.tolist(),  # Convert numpy to list for JSON
+            "policy": example.policy.tolist(),
+            "value": float(example.value),
+            "player": 1 if len(current_game) % 2 == 0 else -1,  # Alternating players
+            "piece_count": piece_count,
+            "policy_max": float(np.max(example.policy)),
+            "policy_sum": float(np.sum(example.policy))
+        }
+        
+        # Check if this should start a new game
+        should_start_new_game = False
+        
+        if current_game:
+            # Get piece count from previous move
+            prev_piece_count = current_game[-1]["piece_count"]
+            
+            # If current move has significantly fewer pieces, it's likely a new game
+            if piece_count < prev_piece_count - 1:  # Allow for 1 piece difference due to normal play
+                should_start_new_game = True
+            
+            # Also check if we've been building up pieces consistently and suddenly dropped
+            elif len(current_game) >= 3:
+                # Look at piece count trend
+                recent_counts = [move["piece_count"] for move in current_game[-3:]]
+                if all(recent_counts[i] <= recent_counts[i+1] for i in range(len(recent_counts)-1)):
+                    # Pieces were increasing, now dropped significantly
+                    if piece_count < min(recent_counts):
+                        should_start_new_game = True
+        
+        # If we should start a new game, save the current one first
+        if should_start_new_game and current_game:
+            # Finalize current game
+            final_value = current_game[-1]["value"]
+            winner = None
+            if final_value > 0.1:
+                winner = 1 if (len(current_game) - 1) % 2 == 0 else -1
+            elif final_value < -0.1:
+                winner = -1 if (len(current_game) - 1) % 2 == 0 else 1
+            else:
+                winner = 0  # Draw
+            
+            game_data = {
+                "game_id": len(games),
+                "moves": current_game,
+                "game_length": len(current_game),
+                "winner": winner,
+                "final_value": float(final_value),
+                "total_pieces": current_game[-1]["piece_count"]
+            }
+            
+            games.append(game_data)
+            current_game = []
+        
+        # Add current move to game
+        current_game.append(move_data)
+    
+    # Add the final game
+    if current_game:
+        final_value = current_game[-1]["value"]
+        winner = None
+        if final_value > 0.1:
+            winner = 1 if (len(current_game) - 1) % 2 == 0 else -1
+        elif final_value < -0.1:
+            winner = -1 if (len(current_game) - 1) % 2 == 0 else 1
+        else:
+            winner = 0  # Draw
+        
+        game_data = {
+            "game_id": len(games),
+            "moves": current_game,
+            "game_length": len(current_game),
+            "winner": winner,
+            "final_value": float(final_value),
+            "total_pieces": current_game[-1]["piece_count"]
+        }
+        
+        games.append(game_data)
+    
+    return games
 
 
 class AlphaZeroDataset(Dataset):
@@ -117,8 +286,16 @@ class AlphaZeroTrainer:
             # Generate self-play data
             new_examples = self._generate_self_play_data(epoch)
             
+            # Apply symmetry augmentation to get 4x training data
+            aug_examples = augment_examples_with_rotations(new_examples)
+            print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (8x with rotations and reflections)")
+            
+            # Save UI-friendly data for inspection (separate from training)
+            if getattr(self.config, 'save_ui_data', True):
+                save_training_games_for_ui(aug_examples, epoch, self.config)
+            
             # Add to training dataset and manage size
-            self._update_training_data(new_examples)
+            self._update_training_data(aug_examples)
             
             # Train neural network on collected data
             if len(self.training_examples) >= self.config.batch_size:
@@ -165,8 +342,37 @@ class AlphaZeroTrainer:
             collect_data=True
         )
         
-        examples = []
         total_games = self.config.games_per_epoch
+        
+        if self.config.use_multiprocessing and total_games > 1:
+            # Use parallel self-play
+            num_processes = self.config.num_processes
+            if num_processes is None:
+                num_processes = min(mp.cpu_count(), total_games)
+            
+            print(f"Running Epoch {epoch_num}: Generating {total_games} games using {num_processes} processes...")
+            
+            try:
+                examples = trainer.generate_training_data_parallel(
+                    n_games=total_games,
+                    num_processes=num_processes,
+                    show_progress=False  # We handle progress here
+                )
+                print(f"Epoch {epoch_num}: Completed all {total_games} games in parallel")
+            except Exception as e:
+                print(f"\nParallel execution failed, falling back to sequential: {e}")
+                # Fallback to sequential execution
+                examples = self._generate_sequential_games(trainer, epoch_num, total_games)
+        else:
+            # Use sequential self-play
+            examples = self._generate_sequential_games(trainer, epoch_num, total_games)
+        
+        self.training_stats['games_played'] += total_games
+        return examples
+    
+    def _generate_sequential_games(self, trainer, epoch_num: int, total_games: int) -> List[TrainingExample]:
+        """Generate games sequentially with progress updates."""
+        examples = []
         
         # Show initial progress line
         print(f"Running Epoch {epoch_num}: Completed 0/{total_games} games", end='', flush=True)
@@ -181,7 +387,6 @@ class AlphaZeroTrainer:
         # Move to next line after completion
         print()
         
-        self.training_stats['games_played'] += total_games
         return examples
     
     def _update_training_data(self, new_examples: List[TrainingExample]):
@@ -300,16 +505,24 @@ class AlphaZeroTrainer:
 
 def main():
     """Main training function."""
-    # Create training configuration
-    config = TrainingConfig(
-        n_epochs=20,           # More epochs for better training
-        games_per_epoch=25,    # Moderate number of games
-        mcts_simulations=200,  # Good balance of strength vs speed
-        batch_size=32,
-        learning_rate=0.001,
-        save_every=1,          # Save every epoch to track progress
-        checkpoint_dir="checkpoints"
-    )
+    # Load config from file (or fallback to defaults)
+    config_path = "config.yaml"
+    if os.path.exists(config_path):
+        print(f"Loading config from {config_path}")
+        config = load_config_from_yaml(config_path)
+    else:
+        print(f"Config file {config_path} not found, using default values")
+        config = TrainingConfig(
+            n_epochs=5,           # More epochs for better training
+            games_per_epoch=25,    # Moderate number of games
+            mcts_simulations=3,  # Good balance of strength vs speed
+            batch_size=32,
+            learning_rate=0.001,
+            save_every=1,          # Save every epoch to track progress
+            checkpoint_dir="checkpoints",
+            use_multiprocessing=True,  # Enable parallel self-play
+            num_processes=5    # Use all available CPUs
+        )
     
     # Create trainer and start training
     trainer = AlphaZeroTrainer(config)
