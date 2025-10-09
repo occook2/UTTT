@@ -65,7 +65,77 @@ def load_config_from_yaml(filepath: str) -> TrainingConfig:
     return TrainingConfig(**config_dict)
 
 
-def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, config: TrainingConfig):
+def make_run_directory() -> str:
+    """
+    Create a timestamped run directory for organizing training artifacts.
+    
+    Returns:
+        str: Path to the created run directory
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = f"run_{timestamp}"
+    run_dir = os.path.join("runs", run_name)
+    os.makedirs(run_dir, exist_ok=True)
+    
+    # Create subdirectories within the run directory
+    checkpoints_dir = os.path.join(run_dir, "checkpoints")
+    config_dir = os.path.join(run_dir, "config")
+    os.makedirs(checkpoints_dir, exist_ok=True)
+    os.makedirs(config_dir, exist_ok=True)
+    
+    print(f"Created run directory: {run_dir}")
+    print(f"Created checkpoints directory: {checkpoints_dir}")
+    print(f"Created config directory: {config_dir}")
+    return run_dir
+
+
+def save_config_to_run(config: TrainingConfig, config_path: str, run_dir: str):
+    """
+    Save a copy of the training configuration to the run directory.
+    
+    Args:
+        config: The training configuration object
+        config_path: Path to the original config file (if it exists)
+        run_dir: Path to the run directory
+    """
+    config_save_dir = os.path.join(run_dir, "config")
+    
+    # Save the config as YAML (preserving original format if it came from a file)
+    if os.path.exists(config_path):
+        # Copy the original config file
+        import shutil
+        original_filename = os.path.basename(config_path)
+        dest_path = os.path.join(config_save_dir, original_filename)
+        shutil.copy2(config_path, dest_path)
+        print(f"Saved original config file: {dest_path}")
+    
+    # Also save the final config as used (in case of any modifications)
+    final_config_path = os.path.join(config_save_dir, "final_config.yaml")
+    config_dict = {
+        'n_epochs': config.n_epochs,
+        'games_per_epoch': config.games_per_epoch,
+        'batch_size': config.batch_size,
+        'learning_rate': config.learning_rate,
+        'weight_decay': config.weight_decay,
+        'mcts_simulations': config.mcts_simulations,
+        'temperature_threshold': config.temperature_threshold,
+        'use_multiprocessing': config.use_multiprocessing,
+        'num_processes': config.num_processes,
+        'save_every': config.save_every,
+        'checkpoint_dir': config.checkpoint_dir,
+        'device': config.device,
+        'max_training_samples': config.max_training_samples,
+        'use_symmetry_augmentation': config.use_symmetry_augmentation,
+        'save_ui_data': config.save_ui_data
+    }
+    
+    with open(final_config_path, 'w') as f:
+        yaml.dump(config_dict, f, default_flow_style=False, indent=2)
+    
+    print(f"Saved final config: {final_config_path}")
+
+
+def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, config: TrainingConfig, run_dir: str):
     """
     Save training examples in a UI-friendly format that reconstructs games.
     This is separate from the actual training data and used only for inspection.
@@ -74,9 +144,10 @@ def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, 
         examples: Raw training examples from self-play
         epoch_num: Current training epoch
         config: Training configuration
+        run_dir: Path to the run directory (not checkpoints)
     """
-    # Create training examples directory
-    ui_data_dir = os.path.join(config.checkpoint_dir, "training_ui_data")
+    # Create training examples directory in the run folder (not checkpoints)
+    ui_data_dir = os.path.join(run_dir, "training_ui_data")
     os.makedirs(ui_data_dir, exist_ok=True)
     
     # Reconstruct games from training examples
@@ -235,8 +306,9 @@ class AlphaZeroDataset(Dataset):
 class AlphaZeroTrainer:
     """Main trainer for AlphaZero agent."""
     
-    def __init__(self, config: TrainingConfig):
+    def __init__(self, config: TrainingConfig, run_dir: str = None):
         self.config = config
+        self.run_dir = run_dir  # Store run directory for UI data saving
         
         # Initialize neural network
         self.network = AlphaZeroNetUTTT()
@@ -292,7 +364,7 @@ class AlphaZeroTrainer:
             
             # Save UI-friendly data for inspection (separate from training)
             if getattr(self.config, 'save_ui_data', True):
-                save_training_games_for_ui(aug_examples, epoch, self.config)
+                save_training_games_for_ui(aug_examples, epoch, self.config, self.run_dir)
             
             # Add to training dataset and manage size
             self._update_training_data(aug_examples)
@@ -505,6 +577,9 @@ class AlphaZeroTrainer:
 
 def main():
     """Main training function."""
+    # Create timestamped run directory
+    run_dir = make_run_directory()
+    
     # Load config from file (or fallback to defaults)
     config_path = "config.yaml"
     if os.path.exists(config_path):
@@ -524,8 +599,14 @@ def main():
             num_processes=5    # Use all available CPUs
         )
     
+    # Update config to use the run-specific checkpoints directory
+    config.checkpoint_dir = os.path.join(run_dir, "checkpoints")
+    
+    # Save config files to the run directory
+    save_config_to_run(config, config_path, run_dir)
+    
     # Create trainer and start training
-    trainer = AlphaZeroTrainer(config)
+    trainer = AlphaZeroTrainer(config, run_dir)
     
     # Optional: Load from checkpoint to resume training
     # start_epoch = trainer.load_checkpoint("checkpoints/alphazero/alphazero_epoch_10.pt")
