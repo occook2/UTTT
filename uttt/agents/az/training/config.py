@@ -7,6 +7,18 @@ import torch
 
 
 @dataclass
+class NetworkConfig:
+    """Configuration for neural network architecture."""
+    # Network architecture parameters (matching AZNetConfig)
+    in_planes: int = 7        # Input state planes (7×9×9)
+    channels: int = 96        # Trunk width (try 64–128)
+    blocks: int = 6           # Number of residual blocks
+    board_n: int = 9          # Spatial size (9x9)
+    policy_reduce: int = 32   # Internal feature width in policy head
+    value_hidden: int = 256   # MLP hidden size for value head
+
+
+@dataclass
 class TrainingConfig:
     """Configuration for AlphaZero training."""
     # Training parameters
@@ -37,10 +49,25 @@ class TrainingConfig:
     
     # UI data saving (separate from training)
     save_ui_data: bool = True
+    
+    # Neural network architecture
+    network: NetworkConfig = None
+    
+    def __post_init__(self):
+        """Initialize network config if not provided."""
+        if self.network is None:
+            self.network = NetworkConfig()
 
 
 def load_config_from_yaml(filepath: str) -> TrainingConfig:
     """Load training configuration from a YAML file."""
     with open(filepath, 'r') as f:
         config_dict = yaml.safe_load(f)
+    
+    # Handle nested network configuration
+    if 'network' in config_dict and isinstance(config_dict['network'], dict):
+        network_dict = config_dict.pop('network')
+        network_config = NetworkConfig(**network_dict)
+        config_dict['network'] = network_config
+    
     return TrainingConfig(**config_dict)

@@ -29,9 +29,25 @@ class AlphaZeroTrainer:
         self.config = config
         self.run_dir = run_dir  # Store run directory for UI data saving
         
-        # Initialize neural network
-        self.network = AlphaZeroNetUTTT()
+        # Initialize neural network with configurable architecture
+        from uttt.agents.az.net import AlphaZeroNetUTTT, AZNetConfig
+        
+        # Convert NetworkConfig to AZNetConfig
+        net_config = AZNetConfig(
+            in_planes=config.network.in_planes,
+            channels=config.network.channels,
+            blocks=config.network.blocks,
+            board_n=config.network.board_n,
+            policy_reduce=config.network.policy_reduce,
+            value_hidden=config.network.value_hidden
+        )
+        
+        self.network = AlphaZeroNetUTTT(net_config)
         self.network.to(self.config.device)
+        
+        # Log initial network parameters (epoch 0) to track weight changes
+        if self.run_dir:
+            log_parameter_metrics(self.run_dir, 0, self.network)
         
         # Initialize optimizer
         self.optimizer = optim.Adam(

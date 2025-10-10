@@ -75,7 +75,15 @@ def save_config_to_run(config: TrainingConfig, config_path: str, run_dir: str):
         'device': config.device,
         'max_training_samples': config.max_training_samples,
         'use_symmetry_augmentation': config.use_symmetry_augmentation,
-        'save_ui_data': config.save_ui_data
+        'save_ui_data': config.save_ui_data,
+        'network': {
+            'in_planes': config.network.in_planes,
+            'channels': config.network.channels,
+            'blocks': config.network.blocks,
+            'board_n': config.network.board_n,
+            'policy_reduce': config.network.policy_reduce,
+            'value_hidden': config.network.value_hidden
+        }
     }
     
     with open(final_config_path, 'w') as f:

@@ -2,13 +2,13 @@
 
 # Training parameters
 n_epochs: 2
-games_per_epoch: 2
+games_per_epoch: 5
 batch_size: 32
 learning_rate: 0.001
 weight_decay: 0.0001
 
 # Self-play parameters
-mcts_simulations: 3
+mcts_simulations: 10
 temperature_threshold: 30
 use_multiprocessing: true
 num_processes: 5
@@ -28,3 +28,12 @@ use_symmetry_augmentation: true
 
 # UI data saving (separate from training)
 save_ui_data: true
+
+# Neural Network Architecture
+network:
+  in_planes: 7          # Input channels (UTTT state representation)
+  channels: 32          # Channels in convolutional layers
+  blocks: 3             # Number of residual blocks  
+  board_n: 9            # Board size (UTTT is 9x9)
+  policy_reduce: 16     # Policy head
+  value_hidden: 64      # Value head
