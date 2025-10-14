@@ -2,8 +2,10 @@
 Factory functions for creating AlphaZero agents with different checkpoints.
 """
 import os
+import torch
 from typing import Optional, Dict, Any
 from uttt.agents.az.agent import AlphaZeroAgent
+from uttt.agents.az.net import AlphaZeroNetUTTT, AZNetConfig
 
 
 def create_alphazero_agent(
@@ -24,15 +26,42 @@ def create_alphazero_agent(
     Returns:
         Configured AlphaZero agent
     """
-    agent = AlphaZeroAgent(device=device)
-    
+    network_config = None
+    network = None
+
     # Load checkpoint if provided
     if checkpoint_path and os.path.exists(checkpoint_path):
-        agent.load_weights(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        
+        # Try to get network config from checkpoint
+        if 'config' in checkpoint and hasattr(checkpoint['config'], 'network'):
+            cfg = checkpoint['config'].network
+            # If it's a dict, convert to AZNetConfig
+            if isinstance(cfg, dict):
+                network_config = AZNetConfig(**cfg)
+            else:
+                network_config = cfg
+        else:
+            # Fallback to default config
+            print("Warning: No network config found in checkpoint, using default")
+            network_config = AZNetConfig()
+        
+        # Create network with correct config and load weights
+        network = AlphaZeroNetUTTT(network_config).to(device)
+        network.load_state_dict(checkpoint['model_state_dict'])
+        network.eval()
+        
     elif checkpoint_path:
         print(f"Warning: Checkpoint {checkpoint_path} not found, using random weights")
+        network_config = AZNetConfig()
+        network = AlphaZeroNetUTTT(network_config).to(device)
     else:
         print("Created AlphaZero agent with random weights")
+        network_config = AZNetConfig()
+        network = AlphaZeroNetUTTT(network_config).to(device)
+    
+    # Create agent with the properly configured network
+    agent = AlphaZeroAgent(network=network, device=device)
     
     # Configure MCTS
     agent.set_temperature(temperature)
