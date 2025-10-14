@@ -32,9 +32,6 @@ def make_run_directory() -> str:
     os.makedirs(metrics_dir, exist_ok=True)
     
     print(f"Created run directory: {run_dir}")
-    print(f"Created checkpoints directory: {checkpoints_dir}")
-    print(f"Created config directory: {config_dir}")
-    print(f"Created metrics directory: {metrics_dir}")
     return run_dir
 
 
@@ -56,7 +53,6 @@ def save_config_to_run(config: TrainingConfig, config_path: str, run_dir: str):
         original_filename = os.path.basename(config_path)
         dest_path = os.path.join(config_save_dir, original_filename)
         shutil.copy2(config_path, dest_path)
-        print(f"Saved original config file: {dest_path}")
     
     # Also save the final config as used (in case of any modifications)
     final_config_path = os.path.join(config_save_dir, "final_config.yaml")
@@ -89,7 +85,6 @@ def save_config_to_run(config: TrainingConfig, config_path: str, run_dir: str):
     with open(final_config_path, 'w') as f:
         yaml.dump(config_dict, f, default_flow_style=False, indent=2)
     
-    print(f"Saved final config: {final_config_path}")
 
 
 def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, config: TrainingConfig, run_dir: str):

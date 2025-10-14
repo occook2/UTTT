@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from typing import List
 
 from uttt.agents.az.agent import AlphaZeroAgent
-from uttt.agents.az.net import AlphaZeroNetUTTT
+from uttt.agents.az.net import AlphaZeroNetUTTT, AZNetConfig
 from uttt.agents.az.loss import AlphaZeroLoss
 from uttt.agents.az.self_play import SelfPlayTrainer, TrainingExample
 from uttt.agents.az.symmetry import augment_examples_with_rotations
@@ -28,9 +28,6 @@ class AlphaZeroTrainer:
     def __init__(self, config: TrainingConfig, run_dir: str = None):
         self.config = config
         self.run_dir = run_dir  # Store run directory for UI data saving
-        
-        # Initialize neural network with configurable architecture
-        from uttt.agents.az.net import AlphaZeroNetUTTT, AZNetConfig
         
         # Convert NetworkConfig to AZNetConfig
         net_config = AZNetConfig(
@@ -103,7 +100,6 @@ class AlphaZeroTrainer:
             
             # Add to training dataset and manage size
             self._update_training_data(aug_examples)
-            
             # Train neural network on collected data
             if len(self.training_examples) >= self.config.batch_size:
                 print("Training neural network...")
@@ -143,8 +139,8 @@ class AlphaZeroTrainer:
         """Generate training data through self-play with clean progress output."""
         mcts_config = MCTSConfig(
             n_simulations=self.config.mcts_simulations,
-            c_puct=1.0,
-            temperature=1.0,
+            c_puct=self.config.c_puct,
+            temperature=self.config.temperature,
             use_transposition_table=True
         )
         
@@ -235,10 +231,7 @@ class AlphaZeroTrainer:
             target_policies = batch['policy'].to(self.config.device)
             target_values = batch['value'].to(self.config.device).squeeze()
             
-            # Zero gradients
-            self.optimizer.zero_grad()
             
-            # Forward pass
             pred_policies, pred_values = self.network(states)
             pred_values = pred_values.squeeze()
             
@@ -247,11 +240,12 @@ class AlphaZeroTrainer:
                 pred_policies, target_policies,
                 pred_values, target_values
             )
-            
+
             # Backward pass
-            loss.backward()
+            self.optimizer.zero_grad()
+            loss.backward()              
             self.optimizer.step()
-            
+
             # Accumulate statistics
             total_loss += loss.item()
             total_policy_loss += policy_loss.item()

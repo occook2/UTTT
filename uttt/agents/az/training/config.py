@@ -31,6 +31,8 @@ class TrainingConfig:
     # Self-play parameters
     mcts_simulations: int = 400
     temperature_threshold: int = 30
+    temperature: float = 1.0
+    c_puct: float = 1.0
     use_multiprocessing: bool = True  # Enable parallel self-play
     num_processes: int = 5  # None = use all CPUs
     
