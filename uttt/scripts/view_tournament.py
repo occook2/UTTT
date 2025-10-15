@@ -269,7 +269,7 @@ def main():
         path = filedialog.askopenfilename(
             title="Select tournament JSON",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            initialdir=os.path.join(os.getcwd(), "runs") if os.path.isdir("runs") else os.getcwd(),
+            initialdir=os.path.join(os.getcwd(), "tournaments") if os.path.isdir("tournaments") else os.getcwd(),
         )
         _root.destroy()
     if not path:
