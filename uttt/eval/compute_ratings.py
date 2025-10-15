@@ -54,8 +54,8 @@ def score_from_winner(winner: int, a_is_x: bool) -> float:
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--runs_dir", default="runs", help="Directory with series_*.json files")
-    p.add_argument("--ratings_out", default="runs/elo_ratings.json", help="Path to write Elo table")
+    p.add_argument("--runs_dir", default="tournaments", help="Directory with series_*.json files")
+    p.add_argument("--ratings_out", default="tournaments/elo_ratings.json", help="Path to write Elo table")
     p.add_argument("--ratings_in", default=None, help="Optional existing Elo JSON to start from")
     p.add_argument("--verbose", action="store_true")
     args = p.parse_args()

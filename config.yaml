@@ -2,17 +2,17 @@
 
 # Training parameters
 n_epochs: 2
-games_per_epoch: 5
+games_per_epoch: 15
 batch_size: 32
 learning_rate: 0.001
 weight_decay: 0.0001
 
 # Self-play parameters
-mcts_simulations: 5
+mcts_simulations: 50
 temperature_threshold: 30
 temperature: 1.0
 c_puct: 1.0
-use_multiprocessing: false # TODO: Fix multiprocessing issue - set to false for now
+use_multiprocessing: false
 num_processes: 5
 
 # Model saving

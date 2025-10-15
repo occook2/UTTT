@@ -258,18 +258,21 @@ class SelfPlayTrainer:
             print("Using shared memory for network weights...")
         
         try:
-            # Share the network's memory across processes
-            # This is the key - we're sharing the actual memory location of the weights
-            shared_network = _share_network_memory(self.agent.network)
+            # Create a CPU copy of the network for sharing across processes
+            # This avoids CUDA tensor sharing issues
+            cpu_network = copy.deepcopy(self.agent.network).cpu()
+            
+            # Share the CPU network's memory across processes
+            cpu_network = _share_network_memory(cpu_network)
             
             # Get network configuration for agent creation in workers
             net_config = self.agent.network.cfg
-            device = self.agent.device
+            device = "cpu"  # Force CPU for multiprocessing
             
             # Prepare arguments for each game
             # We pass the shared network directly - no copying or serialization!
             args_list = [
-                (shared_network, net_config, self.mcts_config, self.temperature_threshold, i, device)
+                (cpu_network, net_config, self.mcts_config, self.temperature_threshold, i, device)
                 for i in range(n_games)
             ]
             
