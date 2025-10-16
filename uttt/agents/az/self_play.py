@@ -16,6 +16,55 @@ from uttt.agents.az.agent import AlphaZeroAgent
 from uttt.mcts.base import MCTSConfig, GenericMCTS
 
 
+def _play_single_game_worker_shared(args):
+    """
+    Worker function for multiprocessing self-play games using shared memory.
+    
+    Args:
+        args: Tuple containing (shared_network, net_config, mcts_config, temperature_threshold, game_idx, device)
+    
+    Returns:
+        Tuple of (training_examples, game_stats)
+    """
+    shared_network, net_config, mcts_config, temperature_threshold, game_idx, device = args
+    
+    # The network weights are already shared in memory, so no copying needed
+    shared_network.eval()
+    
+    # Create agent using the shared network
+    agent = AlphaZeroAgent(
+        network=shared_network,
+        mcts_config=mcts_config,
+        device=device
+    )
+    
+    # Create trainer for this game
+    trainer = SelfPlayTrainer(
+        agent=agent,
+        mcts_config=mcts_config,
+        temperature_threshold=temperature_threshold,
+        collect_data=True
+    )
+    
+    # Play the game and return results
+    return trainer.play_game()
+
+
+def _share_network_memory(network):
+    """
+    Share the network's parameters across processes using torch.multiprocessing.
+    This allows multiple processes to access the same network weights in memory.
+    """
+    # Share all parameters and buffers
+    for param in network.parameters():
+        param.share_memory_()
+    
+    for buffer in network.buffers():
+        buffer.share_memory_()
+    
+    return network
+
+
 def _play_single_game_worker(args):
     """
     Worker function for multiprocessing self-play games.
@@ -26,11 +75,11 @@ def _play_single_game_worker(args):
     Returns:
         Tuple of (training_examples, game_stats)
     """
-    agent_state_dict, mcts_config, temperature_threshold, game_idx, device = args
+    agent_state_dict, net_config, mcts_config, temperature_threshold, game_idx, device = args
     
-    # Create a fresh agent instance for this process
+    # Create a fresh agent instance with the CORRECT config
     from uttt.agents.az.net import AlphaZeroNetUTTT
-    network = AlphaZeroNetUTTT().to(device)
+    network = AlphaZeroNetUTTT(net_config).to(device)
     network.load_state_dict(agent_state_dict)
     network.eval()
     
@@ -191,7 +240,7 @@ class SelfPlayTrainer:
     
     def generate_training_data_parallel(self, n_games: int, num_processes: int = None, show_progress: bool = False) -> List[TrainingExample]:
         """
-        Generate training data from multiple self-play games using multiprocessing.
+        Generate training data from multiple self-play games using multiprocessing with shared memory.
         
         Args:
             n_games: Number of games to play
@@ -206,23 +255,35 @@ class SelfPlayTrainer:
         
         if show_progress:
             print(f"Starting parallel self-play: {n_games} games using {num_processes} processes")
+            print("Using shared memory for network weights...")
         
-        # Get agent's network state dict for sharing across processes
-        agent_state_dict = self.agent.network.state_dict()
-        
-        # Prepare arguments for each game
-        args_list = [
-            (agent_state_dict, self.mcts_config, self.temperature_threshold, i, self.agent.device)
-            for i in range(n_games)
-        ]
-        
-        # Run games in parallel
         try:
-            with Pool(num_processes) as pool:
-                results = pool.map(_play_single_game_worker, args_list)
+            # Create a CPU copy of the network for sharing across processes
+            # This avoids CUDA tensor sharing issues
+            cpu_network = copy.deepcopy(self.agent.network).cpu()
+            
+            # Share the CPU network's memory across processes
+            cpu_network = _share_network_memory(cpu_network)
+            
+            # Get network configuration for agent creation in workers
+            net_config = self.agent.network.cfg
+            device = "cpu"  # Force CPU for multiprocessing
+            
+            # Prepare arguments for each game
+            # We pass the shared network directly - no copying or serialization!
+            args_list = [
+                (cpu_network, net_config, self.mcts_config, self.temperature_threshold, i, device)
+                for i in range(n_games)
+            ]
+            
+            # Use torch.multiprocessing for better PyTorch integration
+            with mp.Pool(num_processes) as pool:
+                results = pool.map(_play_single_game_worker_shared, args_list)
+            
         except Exception as e:
             if show_progress:
-                print(f"Parallel execution failed, falling back to sequential: {e}")
+                print(f"Shared memory approach failed: {e}")
+                print("Falling back to sequential execution...")
             # Fallback to sequential execution
             return self.generate_training_data(n_games, show_progress)
         
@@ -233,7 +294,7 @@ class SelfPlayTrainer:
         for examples, stats in results:
             all_examples.extend(examples)
             
-            # Track game results (assuming winner values are 1, -1, 0)
+            # Track game results
             if stats['winner'] == 1:
                 game_results['wins_p1'] += 1
             elif stats['winner'] == -1:

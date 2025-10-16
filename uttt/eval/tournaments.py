@@ -320,7 +320,7 @@ def _jsonify(obj):
         return obj.tolist()
     return obj
 
-def save_series_json(pkg: SeriesPackage, out_dir: str = "runs") -> str:
+def save_series_json(pkg: SeriesPackage, out_dir: str = "tournaments") -> str:
     os.makedirs(out_dir, exist_ok=True)
     fname = f"series_{pkg.meta['agent_A']}_vs_{pkg.meta['agent_B']}_{pkg.meta['timestamp']}.json"
     path = os.path.join(out_dir, fname)
