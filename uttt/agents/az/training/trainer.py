@@ -3,11 +3,13 @@ AlphaZero trainer implementation.
 """
 import os
 import time
+import shutil
 import torch
 import torch.optim as optim
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
-from typing import List
+from torch.utils.tensorboard import SummaryWriter
+from typing import List, Dict, Any
 
 from uttt.agents.az.agent import AlphaZeroAgent
 from uttt.agents.az.net import AlphaZeroNetUTTT, AZNetConfig
@@ -29,6 +31,16 @@ class AlphaZeroTrainer:
         self.config = config
         self.run_dir = run_dir  # Store run directory for UI data saving
         
+        # Set up TensorBoard logging
+        self.tensorboard_dir = os.path.join(run_dir, 'tensorboard') if run_dir else None
+        self.writer = None
+        if self.tensorboard_dir:
+            self.writer = SummaryWriter(log_dir=self.tensorboard_dir)
+            self._setup_shared_tensorboard_logging()
+        
+        # Training step counter for TensorBoard
+        self.training_step = 0
+        
         # Convert NetworkConfig to AZNetConfig
         net_config = AZNetConfig(
             in_planes=config.network.in_planes,
@@ -41,6 +53,11 @@ class AlphaZeroTrainer:
         
         self.network = AlphaZeroNetUTTT(net_config)
         self.network.to(self.config.device)
+        
+        # Create necessary directories
+        os.makedirs(self.config.checkpoint_dir, exist_ok=True)
+        if self.run_dir:
+            os.makedirs(os.path.join(self.run_dir, "metrics"), exist_ok=True)
         
         # Log initial network parameters (epoch 0) to track weight changes
         if self.run_dir:
@@ -72,9 +89,99 @@ class AlphaZeroTrainer:
             'value_losses': [],
             'games_played': 0
         }
+    
+    def _setup_shared_tensorboard_logging(self):
+        """Set up shared TensorBoard logging for cross-run comparison."""
+        if not self.run_dir:
+            return
+            
+        shared_tensorboard_dir = os.path.join('tensorboard_logs', os.path.basename(self.run_dir))
         
-        # Create checkpoint directory
-        os.makedirs(self.config.checkpoint_dir, exist_ok=True)
+        try:
+            os.makedirs('tensorboard_logs', exist_ok=True)
+            
+            # On Windows, try to create a junction, otherwise copy logs later
+            if os.name == 'nt':  # Windows
+                try:
+                    import subprocess
+                    subprocess.run([
+                        'mklink', '/J', 
+                        os.path.abspath(shared_tensorboard_dir),
+                        os.path.abspath(self.tensorboard_dir)
+                    ], shell=True, check=True, capture_output=True)
+                    print(f"Created TensorBoard junction: {shared_tensorboard_dir}")
+                except:
+                    self.shared_tensorboard_dir = shared_tensorboard_dir
+                    print(f"Will copy TensorBoard logs to {shared_tensorboard_dir} after training")
+            else:  # Unix/Linux/Mac
+                try:
+                    os.symlink(
+                        os.path.abspath(self.tensorboard_dir),
+                        os.path.abspath(shared_tensorboard_dir)
+                    )
+                    print(f"Created TensorBoard symlink: {shared_tensorboard_dir}")
+                except:
+                    self.shared_tensorboard_dir = shared_tensorboard_dir
+                    print(f"Will copy TensorBoard logs to {shared_tensorboard_dir} after training")
+        except Exception as e:
+            print(f"Warning: Could not set up shared TensorBoard logging: {e}")
+    
+    def _log_epoch_metrics(self, epoch: int, metrics: Dict[str, float], self_play_stats: Dict[str, Any] = None):
+        """Log training metrics to TensorBoard."""
+        if not self.writer:
+            return
+            
+        self.training_step = epoch
+        
+        # Log losses
+        self.writer.add_scalar('Loss/Policy', metrics['policy_loss'], self.training_step)
+        self.writer.add_scalar('Loss/Value', metrics['value_loss'], self.training_step)
+        self.writer.add_scalar('Loss/Total', metrics['total_loss'], self.training_step)
+        
+        # Log learning rate
+        self.writer.add_scalar('Training/Learning_Rate', self.optimizer.param_groups[0]['lr'], self.training_step)
+        
+        # Log self-play statistics if available
+        if self_play_stats:
+            self.writer.add_scalar('SelfPlay/Games_Played', self_play_stats.get('games_played', 0), self.training_step)
+            self.writer.add_scalar('SelfPlay/Avg_Game_Length', self_play_stats.get('avg_game_length', 0), self.training_step)
+            self.writer.add_scalar('SelfPlay/Win_Rate_P1', self_play_stats.get('win_rate_p1', 0.5), self.training_step)
+            self.writer.add_scalar('SelfPlay/Win_Rate_P2', self_play_stats.get('win_rate_p2', 0.5), self.training_step)
+            self.writer.add_scalar('SelfPlay/Draw_Rate', self_play_stats.get('draw_rate', 0), self.training_step)
+        
+        # Log training data size
+        self.writer.add_scalar('Training/Dataset_Size', len(self.training_examples), self.training_step)
+        
+        # Flush the writer
+        self.writer.flush()
+    
+    def _copy_logs_to_shared_dir(self):
+        """Copy TensorBoard logs to shared directory for comparison."""
+        if not hasattr(self, 'shared_tensorboard_dir') or not self.tensorboard_dir:
+            return
+            
+        try:
+            if not os.path.exists(self.shared_tensorboard_dir):
+                shutil.copytree(self.tensorboard_dir, self.shared_tensorboard_dir)
+                print(f"Copied TensorBoard logs to {self.shared_tensorboard_dir}")
+        except Exception as e:
+            print(f"Warning: Could not copy TensorBoard logs: {e}")
+    
+    def close(self):
+        """Clean up TensorBoard writer and copy logs if needed."""
+        if self.writer:
+            self.writer.close()
+            self.writer = None
+        
+        # Copy logs to shared directory if needed
+        self._copy_logs_to_shared_dir()
+    
+    def __del__(self):
+        """Ensure TensorBoard writer is closed."""
+        try:
+            self.close()
+        except:
+            pass
     
     def train(self):
         """Run the complete AlphaZero training loop."""
@@ -110,6 +217,25 @@ class AlphaZeroTrainer:
                 self.training_stats['policy_losses'].append(policy_loss)
                 self.training_stats['value_losses'].append(value_loss)
                 
+                # Prepare metrics for logging
+                metrics = {
+                    'total_loss': epoch_loss,
+                    'policy_loss': policy_loss,
+                    'value_loss': value_loss
+                }
+                
+                # Calculate self-play statistics
+                self_play_stats = {
+                    'games_played': self.config.games_per_epoch,
+                    'avg_game_length': self._calculate_avg_game_length(new_examples),
+                    'win_rate_p1': self._calculate_win_rates(new_examples)['p1'],
+                    'win_rate_p2': self._calculate_win_rates(new_examples)['p2'],
+                    'draw_rate': self._calculate_win_rates(new_examples)['draws']
+                }
+                
+                # Log metrics to TensorBoard
+                self._log_epoch_metrics(epoch, metrics, self_play_stats)
+                
                 # Log metrics to CSV files
                 if self.run_dir:
                     log_training_metrics(self.run_dir, epoch, epoch_loss, policy_loss, value_loss)
@@ -133,7 +259,42 @@ class AlphaZeroTrainer:
         
         # Save final model
         self._save_final_model()
+        
+        # Close TensorBoard writer
+        self.close()
+        
         print("Training completed!")
+    
+    def _calculate_avg_game_length(self, examples: List[TrainingExample]) -> float:
+        """Calculate average game length from training examples."""
+        if not examples:
+            return 0.0
+        
+        # Count examples per game (each game contributes multiple examples)
+        # Estimate game count by assuming roughly 30-60 moves per game
+        estimated_games = max(1, len(examples) // 45)  # Rough estimate
+        return len(examples) / estimated_games
+    
+    def _calculate_win_rates(self, examples: List[TrainingExample]) -> Dict[str, float]:
+        """Calculate win rates from training examples."""
+        if not examples:
+            return {'p1': 0.5, 'p2': 0.5, 'draws': 0.0}
+        
+        # Count outcomes (values are from perspective of current player)
+        wins = sum(1 for ex in examples if ex.value == 1.0)
+        losses = sum(1 for ex in examples if ex.value == -1.0)
+        draws = sum(1 for ex in examples if ex.value == 0.0)
+        
+        total = len(examples)
+        if total == 0:
+            return {'p1': 0.5, 'p2': 0.5, 'draws': 0.0}
+        
+        # Since examples alternate between players, roughly estimate
+        return {
+            'p1': wins / total,
+            'p2': losses / total,
+            'draws': draws / total
+        }
     
     def _generate_self_play_data(self, epoch_num: int) -> List[TrainingExample]:
         """Generate training data through self-play with clean progress output."""

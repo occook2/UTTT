@@ -18,6 +18,7 @@ def log_training_metrics(run_dir: str, epoch: int, epoch_loss: float, policy_los
         value_loss: Value loss component
     """
     metrics_dir = os.path.join(run_dir, "metrics")
+    os.makedirs(metrics_dir, exist_ok=True)  # Ensure directory exists
     loss_file = os.path.join(metrics_dir, "loss.csv")
     
     # Check if we need to write header
@@ -40,6 +41,7 @@ def log_gradient_metrics(run_dir: str, epoch: int, model: torch.nn.Module):
         model: The neural network model
     """
     metrics_dir = os.path.join(run_dir, "metrics")
+    os.makedirs(metrics_dir, exist_ok=True)  # Ensure directory exists
     grad_file = os.path.join(metrics_dir, "gradients.csv")
     
     # Check if we need to write header
@@ -76,6 +78,7 @@ def log_parameter_metrics(run_dir: str, epoch: int, model: torch.nn.Module):
         model: The neural network model
     """
     metrics_dir = os.path.join(run_dir, "metrics")
+    os.makedirs(metrics_dir, exist_ok=True)  # Ensure directory exists
     param_file = os.path.join(metrics_dir, "parameters.csv")
     
     # Check if we need to write header
