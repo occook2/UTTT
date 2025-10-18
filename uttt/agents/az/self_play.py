@@ -103,6 +103,7 @@ class TrainingExample:
     state: np.ndarray  # Board state
     policy: np.ndarray  # MCTS policy (visit counts normalized)
     value: float  # Game outcome from current player's perspective
+    agent_value: float = 0.0  # Agent's network evaluation of the position
 
 
 class SelfPlayTrainer:
@@ -173,11 +174,19 @@ class SelfPlayTrainer:
                 # action_probs is already a normalized probability array
                 policy = action_probs.copy()
                 
+                # Get agent's network evaluation of this position
+                agent_evaluation = self.agent.evaluate_position(env)
+                
+                # DEBUG: Log the first few evaluations per game (uncomment when debugging)
+                # if move_count <= 3:
+                #     print(f"  Move {move_count}: Agent evaluation = {agent_evaluation:.6f}")
+                
                 # Store training example (value will be filled in later)
                 examples.append(TrainingExample(
                     state=current_state,
                     policy=policy,
-                    value=0.0  # Placeholder, will be updated with game outcome
+                    value=0.0,  # Placeholder, will be updated with game outcome
+                    agent_value=agent_evaluation  # Agent's evaluation of this position
                 ))
             
             # Make the move
@@ -375,7 +384,7 @@ class SelfPlayTrainer:
             filepath: Path to save training data
         """
         data = {
-            'examples': [(ex.state, ex.policy, ex.value) for ex in self.training_examples],
+            'examples': [(ex.state, ex.policy, ex.value, getattr(ex, 'agent_value', 0.0)) for ex in self.training_examples],
             'config': {
                 'mcts_simulations': self.mcts_config.n_simulations,
                 'temperature_threshold': self.temperature_threshold
@@ -392,10 +401,21 @@ class SelfPlayTrainer:
             filepath: Path to load training data from
         """
         data = torch.load(filepath)
-        self.training_examples = [
-            TrainingExample(state=state, policy=policy, value=value)
-            for state, policy, value in data['examples']
-        ]
+        self.training_examples = []
+        
+        for example_data in data['examples']:
+            if len(example_data) == 4:
+                # New format with agent_value
+                state, policy, value, agent_value = example_data
+                self.training_examples.append(TrainingExample(
+                    state=state, policy=policy, value=value, agent_value=agent_value
+                ))
+            else:
+                # Old format without agent_value
+                state, policy, value = example_data
+                self.training_examples.append(TrainingExample(
+                    state=state, policy=policy, value=value, agent_value=0.0
+                ))
         print(f"Loaded {len(self.training_examples)} training examples from {filepath}")
 
 

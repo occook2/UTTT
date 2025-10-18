@@ -160,7 +160,8 @@ def reconstruct_games_from_examples(examples: List[TrainingExample]) -> List[Dic
             "move_number": len(current_game) + 1,
             "state": example.state.tolist(),  # Convert numpy to list for JSON
             "policy": example.policy.tolist(),
-            "value": float(example.value),
+            "value": float(example.value),  # Game outcome (-1, 0, 1)
+            "agent_value": float(getattr(example, 'agent_value', 0.0)),  # Agent's network evaluation
             "player": 1 if len(current_game) % 2 == 0 else -1,  # Alternating players
             "piece_count": piece_count,
             "policy_max": float(np.max(example.policy)),

@@ -1,18 +1,18 @@
 # AlphaZero Training Configuration
 
 # Training parameters
-n_epochs: 2
-games_per_epoch: 5
+n_epochs: 25
+games_per_epoch: 25
 batch_size: 32
 learning_rate: 0.001
 weight_decay: 0.0001
 
 # Self-play parameters
-mcts_simulations: 5
-temperature_threshold: 30
+mcts_simulations: 100
+temperature_threshold: 81
 temperature: 1.0
 c_puct: 1.0
-use_multiprocessing: false
+use_multiprocessing: true
 num_processes: 5
 
 # Model saving

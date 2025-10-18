@@ -162,10 +162,12 @@ class TrainingDataViewer:
             text=f"Length: {game['game_length']} moves | Winner: {winner_text} | Final Value: {game['final_value']:.3f}"
         )
         
-        # Move info
+        # Move info - show both game outcome and agent evaluation
+        game_outcome = move.get('value', 0.0)
+        agent_eval = move.get('agent_value', 0.0)
         self.move_info.config(
-            text=f"Player {move['player']} | Value: {move['value']:.3f} | "
-                 f"Policy Max: {move['policy_max']:.3f} | Policy Sum: {move['policy_sum']:.3f}"
+            text=f"Player {move['player']} | Game Outcome: {game_outcome:.3f} | "
+                 f"Agent Eval: {agent_eval:.3f} | Policy Max: {move['policy_max']:.3f}"
         )
 
     def draw_board(self):

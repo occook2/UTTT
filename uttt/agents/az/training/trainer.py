@@ -11,6 +11,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from typing import List, Dict, Any
 
+# Suppress TensorFlow oneDNN optimization warnings
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 from uttt.agents.az.agent import AlphaZeroAgent
 from uttt.agents.az.net import AlphaZeroNetUTTT, AZNetConfig
 from uttt.agents.az.loss import AlphaZeroLoss
