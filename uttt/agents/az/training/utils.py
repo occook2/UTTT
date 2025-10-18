@@ -122,7 +122,7 @@ def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, 
     }
     
     # Save to JSON file
-    filename = f"training_games_epoch_{epoch_num}_{timestamp}.json"
+    filename = f"training_games_epoch_{epoch_num}.json"
     filepath = os.path.join(ui_data_dir, filename)
     
     with open(filepath, 'w') as f:

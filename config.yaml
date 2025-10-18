@@ -3,7 +3,7 @@
 # Training parameters
 n_epochs: 25
 games_per_epoch: 25
-batch_size: 32
+batch_size: 64
 learning_rate: 0.001
 weight_decay: 0.0001
 
@@ -16,14 +16,14 @@ use_multiprocessing: true
 num_processes: 5
 
 # Model saving
-save_every: 1
+save_every: 2
 checkpoint_dir: "checkpoints"
 
 # Device
 device: "cuda"
 
 # Training data management
-max_training_samples: 50000
+max_training_samples: 100000
 
 # Symmetry augmentation
 use_symmetry_augmentation: true
