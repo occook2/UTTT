@@ -24,7 +24,7 @@ from uttt.mcts.base import MCTSConfig
 
 from .config import TrainingConfig
 from .dataset import AlphaZeroDataset
-from .metrics import log_training_metrics, log_gradient_metrics, log_parameter_metrics
+from .metrics import log_training_metrics, log_gradient_metrics, log_parameter_metrics, calculate_dead_relu_percentage
 from .utils import save_training_games_for_ui
 
 
@@ -233,11 +233,25 @@ class AlphaZeroTrainer:
                 self.training_stats['policy_losses'].append(policy_loss)
                 self.training_stats['value_losses'].append(value_loss)
                 
+                # Calculate dead ReLU percentage
+                print("Calculating dead ReLU percentage...")
+                dataset = AlphaZeroDataset(self.training_examples)
+                dataloader = DataLoader(
+                    dataset,
+                    batch_size=self.config.batch_size,
+                    shuffle=False,  # Don't shuffle for dead ReLU calculation
+                    num_workers=0
+                )
+                dead_relu_pct = calculate_dead_relu_percentage(
+                    self.network, dataloader, self.config.device, max_batches=3
+                )
+                
                 # Prepare metrics for logging
                 metrics = {
                     'total_loss': epoch_loss,
                     'policy_loss': policy_loss,
-                    'value_loss': value_loss
+                    'value_loss': value_loss,
+                    'dead_relu_pct': dead_relu_pct
                 }
                 
                 # Calculate self-play statistics
@@ -254,7 +268,7 @@ class AlphaZeroTrainer:
                 
                 # Log metrics to CSV files
                 if self.run_dir:
-                    log_training_metrics(self.run_dir, epoch, epoch_loss, policy_loss, value_loss)
+                    log_training_metrics(self.run_dir, epoch, epoch_loss, policy_loss, value_loss, dead_relu_pct)
                     log_gradient_metrics(self.run_dir, epoch, self.network)
                     log_parameter_metrics(self.run_dir, epoch, self.network)
                 
@@ -263,7 +277,7 @@ class AlphaZeroTrainer:
                     self.scheduler.step(epoch_loss)
                 
                 print(f"Epoch {epoch} - Loss: {epoch_loss:.4f} "
-                      f"(Policy: {policy_loss:.4f}, Value: {value_loss:.4f})")
+                      f"(Policy: {policy_loss:.4f}, Value: {value_loss:.4f}, Dead ReLUs: {dead_relu_pct:.1f}%)")
             else:
                 print(f"Not enough training data yet ({len(self.training_examples)} samples)")
             
