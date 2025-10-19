@@ -25,6 +25,7 @@ class MCTSConfig:
     add_noise: bool = False  # Dirichlet noise for root
     noise_alpha: float = 0.3
     noise_epsilon: float = 0.25
+    noise_moves: int = 10  # Only apply noise to first N moves
 
 
 class EvaluationStrategy(ABC):
@@ -163,17 +164,37 @@ class GenericMCTS:
             root = Node(state_key=root_key)
             if self.config.use_transposition_table:
                 self.transposition_table[root_key] = root
+
+        # Expand root if needed and add Dirichlet noise BEFORE simulations
+        if not root.is_expanded:
+            # Need to expand root first to get children for noise
+            value, priors = self.strategy.evaluate_and_expand(env)
+            legal_actions = env.legal_actions()
+            for action in legal_actions:
+                child_env = clone_env(env)
+                child_env.step(action)
+                child_key = state_key(child_env)
+                prior = priors.get(action, 1.0 / len(legal_actions))
+                root.add_child(action, prior, child_key)
+            root.is_expanded = True
+        
+        # Add Dirichlet noise to root BEFORE running simulations
+        # Only apply noise during early moves of the game
+        if self.config.add_noise and root.children:
+            # Count moves played so far
+            moves_played = int(np.count_nonzero(env.board))
+            if moves_played < self.config.noise_moves:
+                self._add_dirichlet_noise(root)
         
         # Run simulations
         for _ in range(self.config.n_simulations):
             self._simulate(root, clone_env(env))
-            
-        # Add Dirichlet noise to root if requested
-        if self.config.add_noise and root.children:
-            self._add_dirichlet_noise(root)
         
         # Get action probabilities
         action_probs = root.get_action_probabilities(self.config.temperature)
+        
+        # Get raw policy probabilities (before MCTS) for confidence checking
+        raw_policy_probs = self.get_raw_policy_probabilities(env)
         
         # Select best action
         if self.config.temperature == 0:
@@ -185,7 +206,7 @@ class GenericMCTS:
             legal_probs = legal_probs / legal_probs.sum()  # Renormalize
             best_action = np.random.choice(legal_actions, p=legal_probs)
             
-        return int(best_action), action_probs
+        return int(best_action), action_probs, raw_policy_probs
     
     def _simulate(self, root: Node, env: UTTTEnv):
         """Run one simulation from root"""
@@ -233,6 +254,25 @@ class GenericMCTS:
             # Flip value sign as we go up the tree
             backup_value = value if i % 2 == 0 else -value
             path_node.backup(backup_value)
+    
+    def get_raw_policy_probabilities(self, env: UTTTEnv) -> np.ndarray:
+        """Get raw neural network policy probabilities (before MCTS)"""
+        _, priors = self.strategy.evaluate_and_expand(env)
+        
+        # Convert to numpy array
+        probs = np.zeros(81)
+        for action, prob in priors.items():
+            probs[action] = prob
+            
+        # Mask illegal actions and renormalize
+        legal_mask = env.legal_actions_mask().flatten()
+        probs = probs * legal_mask
+        
+        # Renormalize to sum to 1
+        if probs.sum() > 0:
+            probs = probs / probs.sum()
+            
+        return probs
     
     def _add_dirichlet_noise(self, root: Node):
         """Add Dirichlet noise to root node priors"""

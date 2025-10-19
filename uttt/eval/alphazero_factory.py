@@ -60,12 +60,21 @@ def create_alphazero_agent(
         network_config = AZNetConfig()
         network = AlphaZeroNetUTTT(network_config).to(device)
     
-    # Create agent with the properly configured network
-    agent = AlphaZeroAgent(network=network, device=device)
+    # Create MCTS config without noise for evaluation
+    from uttt.mcts.base import MCTSConfig
+    mcts_config = MCTSConfig(
+        n_simulations=mcts_simulations,
+        c_puct=1.0,
+        temperature=temperature,
+        use_transposition_table=True,
+        add_noise=False,           # NO noise during evaluation
+        noise_alpha=0.3,
+        noise_epsilon=0.25,
+        noise_moves=10
+    )
     
-    # Configure MCTS
-    agent.set_temperature(temperature)
-    agent.set_simulations(mcts_simulations)
+    # Create agent with the properly configured network and MCTS config
+    agent = AlphaZeroAgent(network=network, mcts_config=mcts_config, device=device)
     
     return agent
 

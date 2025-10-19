@@ -6,6 +6,7 @@ import time
 import shutil
 import torch
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -72,6 +73,18 @@ class AlphaZeroTrainer:
             lr=self.config.learning_rate,
             weight_decay=self.config.weight_decay
         )
+        
+        # Initialize learning rate scheduler
+        self.scheduler = None
+        if self.config.use_lr_scheduler:
+            self.scheduler = ReduceLROnPlateau(
+                self.optimizer,
+                mode='min',
+                factor=self.config.lr_scheduler_factor,
+                patience=self.config.lr_scheduler_patience,
+                threshold=self.config.lr_scheduler_threshold,
+                verbose=True
+            )
         
         # Initialize loss function
         self.loss_fn = AlphaZeroLoss()
@@ -245,6 +258,10 @@ class AlphaZeroTrainer:
                     log_gradient_metrics(self.run_dir, epoch, self.network)
                     log_parameter_metrics(self.run_dir, epoch, self.network)
                 
+                # Step the learning rate scheduler if enabled
+                if self.scheduler is not None:
+                    self.scheduler.step(epoch_loss)
+                
                 print(f"Epoch {epoch} - Loss: {epoch_loss:.4f} "
                       f"(Policy: {policy_loss:.4f}, Value: {value_loss:.4f})")
             else:
@@ -305,14 +322,20 @@ class AlphaZeroTrainer:
             n_simulations=self.config.mcts_simulations,
             c_puct=self.config.c_puct,
             temperature=self.config.temperature,
-            use_transposition_table=True
+            use_transposition_table=True,
+            add_noise=self.config.add_dirichlet_noise,        # Enable noise during training
+            noise_alpha=self.config.dirichlet_alpha,           # Use config alpha
+            noise_epsilon=self.config.dirichlet_epsilon,       # Use config epsilon
+            noise_moves=self.config.dirichlet_noise_moves      # Limit noise to early moves
         )
         
         trainer = SelfPlayTrainer(
             agent=self.agent,
             mcts_config=mcts_config,
             temperature_threshold=self.config.temperature_threshold,
-            collect_data=True
+            collect_data=True,
+            use_adaptive_temperature=self.config.use_adaptive_temperature,
+            confidence_threshold=self.config.confidence_threshold
         )
         
         total_games = self.config.games_per_epoch
@@ -430,13 +453,19 @@ class AlphaZeroTrainer:
             f"alphazero_epoch_{epoch}.pt"
         )
         
-        torch.save({
+        checkpoint_data = {
             'epoch': epoch,
             'model_state_dict': self.network.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'training_stats': self.training_stats,
             'config': self.config
-        }, checkpoint_path)
+        }
+        
+        # Include scheduler state if scheduler is being used
+        if self.scheduler is not None:
+            checkpoint_data['scheduler_state_dict'] = self.scheduler.state_dict()
+            
+        torch.save(checkpoint_data, checkpoint_path)
         
         print(f"Saved checkpoint: {checkpoint_path}")
     
@@ -444,11 +473,17 @@ class AlphaZeroTrainer:
         """Save the final trained model."""
         final_path = os.path.join(self.config.checkpoint_dir, "alphazero_final.pt")
         
-        torch.save({
+        final_data = {
             'model_state_dict': self.network.state_dict(),
             'training_stats': self.training_stats,
             'config': self.config
-        }, final_path)
+        }
+        
+        # Include scheduler state if scheduler is being used
+        if self.scheduler is not None:
+            final_data['scheduler_state_dict'] = self.scheduler.state_dict()
+            
+        torch.save(final_data, final_path)
         
         print(f"Saved final model: {final_path}")
     
@@ -469,6 +504,10 @@ class AlphaZeroTrainer:
         self.network.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.training_stats = checkpoint['training_stats']
+        
+        # Load scheduler state if available and scheduler is being used
+        if self.scheduler is not None and 'scheduler_state_dict' in checkpoint:
+            self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         
         print(f"Loaded checkpoint from {checkpoint_path}")
         return checkpoint['epoch']
