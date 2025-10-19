@@ -4,6 +4,9 @@ Combines self-play data generation with neural network training.
 """
 import os
 
+# Suppress TensorFlow oneDNN optimization warnings
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 from .training import (
     TrainingConfig, 
     NetworkConfig,

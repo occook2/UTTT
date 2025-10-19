@@ -21,12 +21,12 @@ def _play_single_game_worker_shared(args):
     Worker function for multiprocessing self-play games using shared memory.
     
     Args:
-        args: Tuple containing (shared_network, net_config, mcts_config, temperature_threshold, game_idx, device)
+        args: Tuple containing (shared_network, net_config, mcts_config, temperature_threshold, game_idx, device, use_adaptive_temperature, confidence_threshold)
     
     Returns:
         Tuple of (training_examples, game_stats)
     """
-    shared_network, net_config, mcts_config, temperature_threshold, game_idx, device = args
+    shared_network, net_config, mcts_config, temperature_threshold, game_idx, device, use_adaptive_temperature, confidence_threshold = args
     
     # The network weights are already shared in memory, so no copying needed
     shared_network.eval()
@@ -43,7 +43,9 @@ def _play_single_game_worker_shared(args):
         agent=agent,
         mcts_config=mcts_config,
         temperature_threshold=temperature_threshold,
-        collect_data=True
+        collect_data=True,
+        use_adaptive_temperature=use_adaptive_temperature,
+        confidence_threshold=confidence_threshold
     )
     
     # Play the game and return results
@@ -103,6 +105,7 @@ class TrainingExample:
     state: np.ndarray  # Board state
     policy: np.ndarray  # MCTS policy (visit counts normalized)
     value: float  # Game outcome from current player's perspective
+    agent_value: float = 0.0  # Agent's network evaluation of the position
 
 
 class SelfPlayTrainer:
@@ -115,7 +118,9 @@ class SelfPlayTrainer:
         agent: AlphaZeroAgent,
         mcts_config: MCTSConfig,
         temperature_threshold: int = 30,  # Switch to deterministic after this many moves
-        collect_data: bool = True
+        collect_data: bool = True,
+        use_adaptive_temperature: bool = False,  # Use confidence-based temperature
+        confidence_threshold: float = 0.6  # Switch to deterministic if policy confidence > threshold
     ):
         """
         Initialize self-play trainer.
@@ -130,6 +135,8 @@ class SelfPlayTrainer:
         self.mcts_config = mcts_config
         self.temperature_threshold = temperature_threshold
         self.collect_data = collect_data
+        self.use_adaptive_temperature = use_adaptive_temperature
+        self.confidence_threshold = confidence_threshold
         
         # Training data storage
         self.training_examples: List[TrainingExample] = []
@@ -156,28 +163,49 @@ class SelfPlayTrainer:
         while not env.terminated:
             move_count += 1
             
-            # Set temperature based on move count
-            temperature = 1.0 if move_count <= self.temperature_threshold else 0.0
-            self.agent.set_temperature(temperature)
-            
             # Get current state for training data
             if self.collect_data:
                 current_state = env._encode()
             
-            # Create MCTS instance and get policy
+            # Create MCTS instance and run search
             mcts = GenericMCTS(self.agent.strategy, self.mcts_config)
-            action, action_probs = mcts.search(env)
+            
+            # Determine temperature based on adaptive or threshold strategy
+            if self.use_adaptive_temperature:
+                # First, get raw policy probabilities to check confidence
+                raw_policy_probs = mcts.get_raw_policy_probabilities(env)
+                max_policy_prob = np.max(raw_policy_probs)
+                temperature = 0.0 if max_policy_prob >= self.confidence_threshold else 1.0
+            else:
+                # Use traditional move-count threshold
+                temperature = 1.0 if move_count <= self.temperature_threshold else 0.0
+                raw_policy_probs = None
+            
+            # Run MCTS search with determined temperature
+            # Temporarily override the MCTS config temperature
+            original_temp = mcts.config.temperature
+            mcts.config.temperature = temperature
+            action, action_probs, _ = mcts.search(env)
+            mcts.config.temperature = original_temp  # Restore original
             
             # Convert policy to numpy array (normalized visit counts)
             if self.collect_data:
                 # action_probs is already a normalized probability array
                 policy = action_probs.copy()
                 
+                # Get agent's network evaluation of this position
+                agent_evaluation = self.agent.evaluate_position(env)
+                
+                # DEBUG: Log the first few evaluations per game (uncomment when debugging)
+                # if move_count <= 3:
+                #     print(f"  Move {move_count}: Agent evaluation = {agent_evaluation:.6f}")
+                
                 # Store training example (value will be filled in later)
                 examples.append(TrainingExample(
                     state=current_state,
                     policy=policy,
-                    value=0.0  # Placeholder, will be updated with game outcome
+                    value=0.0,  # Placeholder, will be updated with game outcome
+                    agent_value=agent_evaluation  # Agent's evaluation of this position
                 ))
             
             # Make the move
@@ -272,7 +300,8 @@ class SelfPlayTrainer:
             # Prepare arguments for each game
             # We pass the shared network directly - no copying or serialization!
             args_list = [
-                (cpu_network, net_config, self.mcts_config, self.temperature_threshold, i, device)
+                (cpu_network, net_config, self.mcts_config, self.temperature_threshold, i, device, 
+                 self.use_adaptive_temperature, self.confidence_threshold)
                 for i in range(n_games)
             ]
             
@@ -375,7 +404,7 @@ class SelfPlayTrainer:
             filepath: Path to save training data
         """
         data = {
-            'examples': [(ex.state, ex.policy, ex.value) for ex in self.training_examples],
+            'examples': [(ex.state, ex.policy, ex.value, getattr(ex, 'agent_value', 0.0)) for ex in self.training_examples],
             'config': {
                 'mcts_simulations': self.mcts_config.n_simulations,
                 'temperature_threshold': self.temperature_threshold
@@ -392,10 +421,21 @@ class SelfPlayTrainer:
             filepath: Path to load training data from
         """
         data = torch.load(filepath)
-        self.training_examples = [
-            TrainingExample(state=state, policy=policy, value=value)
-            for state, policy, value in data['examples']
-        ]
+        self.training_examples = []
+        
+        for example_data in data['examples']:
+            if len(example_data) == 4:
+                # New format with agent_value
+                state, policy, value, agent_value = example_data
+                self.training_examples.append(TrainingExample(
+                    state=state, policy=policy, value=value, agent_value=agent_value
+                ))
+            else:
+                # Old format without agent_value
+                state, policy, value = example_data
+                self.training_examples.append(TrainingExample(
+                    state=state, policy=policy, value=value, agent_value=0.0
+                ))
         print(f"Loaded {len(self.training_examples)} training examples from {filepath}")
 
 

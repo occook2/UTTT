@@ -122,7 +122,7 @@ def save_training_games_for_ui(examples: List[TrainingExample], epoch_num: int, 
     }
     
     # Save to JSON file
-    filename = f"training_games_epoch_{epoch_num}_{timestamp}.json"
+    filename = f"training_games_epoch_{epoch_num}.json"
     filepath = os.path.join(ui_data_dir, filename)
     
     with open(filepath, 'w') as f:
@@ -160,7 +160,8 @@ def reconstruct_games_from_examples(examples: List[TrainingExample]) -> List[Dic
             "move_number": len(current_game) + 1,
             "state": example.state.tolist(),  # Convert numpy to list for JSON
             "policy": example.policy.tolist(),
-            "value": float(example.value),
+            "value": float(example.value),  # Game outcome (-1, 0, 1)
+            "agent_value": float(getattr(example, 'agent_value', 0.0)),  # Agent's network evaluation
             "player": 1 if len(current_game) % 2 == 0 else -1,  # Alternating players
             "piece_count": piece_count,
             "policy_max": float(np.max(example.policy)),

@@ -25,10 +25,12 @@ def rotate_example(example: TrainingExample, k: int) -> TrainingExample:
     rotated_policy = np.rot90(example.policy.reshape(9, 9), k=k).flatten().copy()
     
     # Value stays the same (game outcome doesn't change with rotation)
+    # Agent value also stays the same (evaluation doesn't change with rotation)
     return TrainingExample(
         state=rotated_state,
         policy=rotated_policy,
-        value=example.value
+        value=example.value,
+        agent_value=getattr(example, 'agent_value', 0.0)
     )
 
 def reflect_example(example: TrainingExample) -> TrainingExample:
@@ -38,7 +40,8 @@ def reflect_example(example: TrainingExample) -> TrainingExample:
     return TrainingExample(
         state=reflected_state,
         policy=reflected_policy,
-        value=example.value
+        value=example.value,
+        agent_value=getattr(example, 'agent_value', 0.0)
     )
 
 def augment_examples_with_rotations(examples: List[TrainingExample]) -> List[TrainingExample]:

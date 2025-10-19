@@ -9,6 +9,26 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 from typing import Dict, Any, List, Optional
 import numpy as np
+import math
+
+
+def calculate_policy_entropy(policy: List[float]) -> float:
+    """
+    Calculate the entropy of a policy distribution.
+    
+    H(p) = -Σ p_i * log(p_i)
+    
+    Args:
+        policy: List of probabilities (should sum to ~1.0)
+        
+    Returns:
+        Entropy value (higher = more uncertain/exploratory)
+    """
+    entropy = 0.0
+    for p in policy:
+        if p > 1e-10:  # Avoid log(0)
+            entropy -= p * math.log2(p)  # Using log2 for bits
+    return entropy
 
 # Reuse constants from view_tournament.py
 CELL = 40
@@ -162,10 +182,16 @@ class TrainingDataViewer:
             text=f"Length: {game['game_length']} moves | Winner: {winner_text} | Final Value: {game['final_value']:.3f}"
         )
         
-        # Move info
+        # Move info - show game outcome, agent evaluation, and policy entropy
+        game_outcome = move.get('value', 0.0)
+        agent_eval = move.get('agent_value', 0.0)
+        policy = move.get('policy', [])
+        policy_entropy = calculate_policy_entropy(policy) if policy else 0.0
+        
         self.move_info.config(
-            text=f"Player {move['player']} | Value: {move['value']:.3f} | "
-                 f"Policy Max: {move['policy_max']:.3f} | Policy Sum: {move['policy_sum']:.3f}"
+            text=f"Player {move['player']} | Game Outcome: {game_outcome:.3f} | "
+                 f"Agent Eval: {agent_eval:.3f} | Policy Max: {move['policy_max']:.3f} | "
+                 f"Policy Entropy: {policy_entropy:.3f} bits"
         )
 
     def draw_board(self):

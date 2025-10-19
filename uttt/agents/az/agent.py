@@ -73,8 +73,36 @@ class AlphaZeroAgent(Agent):
         mcts = GenericMCTS(self.strategy, self.mcts_config)
         
         # Run MCTS search
-        action, _ = mcts.search(env)
+        action, _, _ = mcts.search(env)  # Updated to handle 3 return values
         return action
+    
+    def evaluate_position(self, env: UTTTEnv) -> float:
+        """
+        Get the neural network's direct evaluation of a position.
+        
+        Args:
+            env: Current environment state
+            
+        Returns:
+            Neural network's value prediction for the current player
+        """
+        if env.terminated:
+            return 0.0
+        
+        # Get network evaluation
+        with torch.no_grad():
+            self.network.eval()
+            state_tensor = torch.FloatTensor(env._encode()).unsqueeze(0).to(self.device)
+            _, value_logits = self.network(state_tensor)
+            raw_value = torch.tanh(value_logits).item()
+            
+            # DEBUG: Add logging to see what the network is actually outputting
+            # Uncomment these lines when debugging:
+            # print(f"DEBUG - Network evaluation:")
+            # print(f"  Value logits: {value_logits.item():.6f}")
+            # print(f"  Tanh output: {raw_value:.6f}")
+            
+            return raw_value
     
     def load_weights(self, checkpoint_path: str):
         """

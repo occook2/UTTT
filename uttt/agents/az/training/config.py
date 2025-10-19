@@ -36,6 +36,22 @@ class TrainingConfig:
     use_multiprocessing: bool = True  # Enable parallel self-play
     num_processes: int = 5  # None = use all CPUs
     
+    # Dirichlet noise parameters
+    add_dirichlet_noise: bool = False
+    dirichlet_alpha: float = 0.3
+    dirichlet_epsilon: float = 0.25
+    dirichlet_noise_moves: int = 10  # Only apply noise to first N moves
+    
+    # Adaptive temperature based on policy confidence
+    use_adaptive_temperature: bool = False
+    confidence_threshold: float = 0.6  # Switch to deterministic if max policy > threshold
+    
+    # Adaptive learning rate parameters
+    use_lr_scheduler: bool = False
+    lr_scheduler_patience: int = 3  # Epochs to wait before reducing LR
+    lr_scheduler_factor: float = 0.5  # Factor to multiply LR by
+    lr_scheduler_threshold: float = 0.01  # Minimum decrease to be significant
+    
     # Model saving
     save_every: int = 10  # Save model every N epochs
     checkpoint_dir: str = "checkpoints"
