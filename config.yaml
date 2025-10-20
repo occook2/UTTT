@@ -34,6 +34,7 @@ dirichlet_noise_moves: 10   # Only apply noise to first N moves of game
 # Model saving
 save_every: 2
 checkpoint_dir: "checkpoints"
+resume_from_checkpoint: "runs/run_20251017_212855/checkpoints/alphazero_epoch_24.pt"
 
 # Device
 device: "cuda"
