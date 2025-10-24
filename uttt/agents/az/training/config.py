@@ -55,6 +55,7 @@ class TrainingConfig:
     # Model saving
     save_every: int = 10  # Save model every N epochs
     checkpoint_dir: str = "checkpoints"
+    resume_from_checkpoint: str = None  # Path to checkpoint to resume from (None = start fresh)
     
     # Device
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
