@@ -1,0 +1,22 @@
+batch_size: 64
+checkpoint_dir: ttt/runs\run_20251025_150038\checkpoints
+device: cuda
+games_per_epoch: 5
+learning_rate: 0.001
+max_training_samples: 100000
+mcts_simulations: 10
+n_epochs: 2
+network:
+  blocks: 2
+  board_n: 3
+  channels: 32
+  in_planes: 5
+  policy_reduce: 16
+  value_hidden: 64
+num_processes: 5
+save_every: 2
+save_ui_data: true
+temperature_threshold: 9
+use_multiprocessing: true
+use_symmetry_augmentation: true
+weight_decay: 0.0001

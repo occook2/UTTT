@@ -7,7 +7,7 @@ from typing import Optional, Callable
 import threading
 import time
 
-from uttt.agents.base import Agent
+from ttt.agents.base import Agent
 from ttt.env.state import TTTEnv
 
 

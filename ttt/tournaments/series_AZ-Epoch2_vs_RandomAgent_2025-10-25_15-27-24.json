@@ -1,0 +1,1427 @@
+{
+  "meta": {
+    "timestamp": "2025-10-25_15-27-24",
+    "agent_A": "AZ-Epoch2",
+    "agent_B": "RandomAgent",
+    "agent_A_id": "AZ-Epoch2",
+    "agent_B_id": "RandomAgent",
+    "base_seed": 0,
+    "instantiate_kwargs_A": {},
+    "instantiate_kwargs_B": {},
+    "schema": {
+      "game": [
+        "seed",
+        "a_is_x",
+        "winner",
+        "moves",
+        "moves_len"
+      ],
+      "winner_values": {
+        "X": 1,
+        "O": -1,
+        "draw": 0
+      }
+    }
+  },
+  "summary": {
+    "n_games": 100,
+    "wins_A": 94,
+    "wins_B": 3,
+    "draws": 3,
+    "avg_moves": 5.92
+  },
+  "games": [
+    {
+      "seed": 0,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        8,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 1,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        2,
+        6,
+        5,
+        3
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 2,
+      "a_is_x": true,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        7,
+        4,
+        8,
+        6,
+        2,
+        3
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 3,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        8,
+        0,
+        4,
+        3,
+        6,
+        2,
+        5,
+        1
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 4,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        5,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 5,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        5,
+        0,
+        4,
+        3,
+        1,
+        6
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 6,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        7,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 7,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        7,
+        0,
+        1,
+        4,
+        8,
+        6,
+        5,
+        3
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 8,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        5,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 9,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        8,
+        0,
+        1,
+        6,
+        7,
+        3
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 10,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        3,
+        2,
+        7,
+        0
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 11,
+      "a_is_x": false,
+      "winner": 1,
+      "moves": [
+        0,
+        5,
+        2,
+        1,
+        4,
+        6,
+        8
+      ],
+      "moves_len": 7
+    },
+    {
+      "seed": 12,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        8,
+        4,
+        6,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 13,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        6,
+        0,
+        7,
+        8,
+        4,
+        1,
+        5,
+        2
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 14,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        7,
+        0,
+        2,
+        6,
+        4,
+        3
+      ],
+      "moves_len": 7
+    },
+    {
+      "seed": 15,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        8,
+        6,
+        5,
+        3
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 16,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        4,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 17,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        6,
+        0,
+        1,
+        8,
+        7,
+        4
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 18,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 19,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        5,
+        0,
+        2,
+        8,
+        6,
+        4
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 20,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 21,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        2,
+        6,
+        1,
+        3
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 22,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        3,
+        2,
+        8,
+        0
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 23,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        5,
+        0,
+        2,
+        8,
+        7,
+        4
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 24,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        5,
+        0,
+        7,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 25,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        4,
+        7,
+        5,
+        3,
+        8,
+        6
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 26,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        8,
+        4,
+        7,
+        6,
+        3,
+        2
+      ],
+      "moves_len": 7
+    },
+    {
+      "seed": 27,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        5,
+        0,
+        3,
+        4,
+        6,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 28,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        8,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 29,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        0,
+        5,
+        7,
+        2,
+        6,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 30,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        0,
+        7,
+        2,
+        4
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 31,
+      "a_is_x": false,
+      "winner": 0,
+      "moves": [
+        4,
+        0,
+        3,
+        5,
+        7,
+        1,
+        2,
+        6,
+        8
+      ],
+      "moves_len": 9
+    },
+    {
+      "seed": 32,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        3,
+        2,
+        6,
+        0
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 33,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        7,
+        0,
+        4,
+        1,
+        5,
+        2
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 34,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        0,
+        7,
+        2,
+        4
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 35,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        2,
+        6,
+        7,
+        3
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 36,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        8,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 37,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        1,
+        7,
+        2,
+        6,
+        3,
+        8
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 38,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        7,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 39,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        8,
+        0,
+        5,
+        2,
+        1,
+        6,
+        4,
+        3
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 40,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        0,
+        7,
+        3,
+        4
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 41,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        1,
+        7,
+        5,
+        3,
+        2,
+        6
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 42,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        5,
+        0,
+        4,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 43,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        7,
+        1,
+        5,
+        2
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 44,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 45,
+      "a_is_x": false,
+      "winner": 0,
+      "moves": [
+        4,
+        0,
+        3,
+        5,
+        2,
+        6,
+        7,
+        1,
+        8
+      ],
+      "moves_len": 9
+    },
+    {
+      "seed": 46,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        3,
+        2,
+        8,
+        0
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 47,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        8,
+        0,
+        3,
+        2,
+        4,
+        1
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 48,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        6,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 49,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        7,
+        4,
+        2,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 50,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        7,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 51,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        6,
+        2,
+        7,
+        1
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 52,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        3,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 53,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        6,
+        0,
+        4,
+        2,
+        5,
+        1
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 54,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        4,
+        0,
+        8,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 55,
+      "a_is_x": false,
+      "winner": 1,
+      "moves": [
+        2,
+        7,
+        8,
+        5,
+        0,
+        4,
+        1
+      ],
+      "moves_len": 7
+    },
+    {
+      "seed": 56,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        0,
+        7,
+        3,
+        4
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 57,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        0,
+        5,
+        1,
+        2,
+        6,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 58,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        5,
+        0,
+        6,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 59,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        6,
+        0,
+        7,
+        8,
+        5,
+        4
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 60,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        0,
+        7,
+        5,
+        4
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 61,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        5,
+        0,
+        7,
+        2,
+        6,
+        1
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 62,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        4,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 63,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        7,
+        4,
+        2,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 64,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        5,
+        0,
+        2,
+        8,
+        7,
+        4
+      ],
+      "moves_len": 7
+    },
+    {
+      "seed": 65,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        7,
+        4,
+        3,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 66,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        3,
+        2,
+        6,
+        0
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 67,
+      "a_is_x": false,
+      "winner": 0,
+      "moves": [
+        4,
+        0,
+        8,
+        6,
+        3,
+        5,
+        1,
+        7,
+        2
+      ],
+      "moves_len": 9
+    },
+    {
+      "seed": 68,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        6,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 69,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        7,
+        4,
+        2,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 70,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        8,
+        4,
+        3,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 71,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        7,
+        0,
+        3,
+        1,
+        4,
+        2
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 72,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        3,
+        2,
+        5,
+        0
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 73,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        0,
+        5,
+        8,
+        4,
+        7,
+        3
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 74,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        7,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 75,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        1,
+        0,
+        7,
+        4,
+        2,
+        8
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 76,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        0,
+        7,
+        5,
+        4
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 77,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        4,
+        0,
+        6,
+        2,
+        3,
+        1
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 78,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        7,
+        0,
+        4,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 79,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        6,
+        0,
+        5,
+        2,
+        7,
+        1
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 80,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        8,
+        4,
+        5,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 81,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        2,
+        7,
+        5,
+        8,
+        6,
+        4,
+        1,
+        0
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 82,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        6,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 83,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        7,
+        0,
+        8,
+        6,
+        5,
+        3
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 84,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        8,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 85,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        6,
+        0,
+        1,
+        8,
+        7,
+        4
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 86,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        3,
+        2,
+        6,
+        0
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 87,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        5,
+        0,
+        7,
+        2,
+        6,
+        1
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 88,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        5,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 89,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        0,
+        5,
+        8,
+        4,
+        3,
+        6,
+        1,
+        2
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 90,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        0,
+        7,
+        3,
+        4
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 91,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        2,
+        7,
+        0,
+        1,
+        3,
+        4
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 92,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        5,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 93,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        7,
+        0,
+        4,
+        1,
+        6,
+        2
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 94,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        2,
+        4,
+        6,
+        7
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 95,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        8,
+        0,
+        6,
+        7,
+        2,
+        4,
+        3,
+        1
+      ],
+      "moves_len": 8
+    },
+    {
+      "seed": 96,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        2,
+        4,
+        7,
+        8
+      ],
+      "moves_len": 7
+    },
+    {
+      "seed": 97,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        7,
+        0,
+        4,
+        1,
+        8,
+        2
+      ],
+      "moves_len": 6
+    },
+    {
+      "seed": 98,
+      "a_is_x": true,
+      "winner": 1,
+      "moves": [
+        1,
+        6,
+        0,
+        3,
+        2
+      ],
+      "moves_len": 5
+    },
+    {
+      "seed": 99,
+      "a_is_x": false,
+      "winner": -1,
+      "moves": [
+        5,
+        0,
+        8,
+        2,
+        6,
+        1
+      ],
+      "moves_len": 6
+    }
+  ]
+}

@@ -40,7 +40,7 @@ class GameRecord:
     seed: Optional[int]
     a_is_x: bool          # True if AgentA played X in this game
     winner: int           # +1 (X), -1 (O), 0 (draw)
-    moves: List[int]      # list of 0..80 actions in order
+    moves: List[int]      # list of 0..8 actions in order
     moves_len: int
 
 @dataclass
@@ -318,7 +318,7 @@ def _jsonify(obj):
         return obj.tolist()
     return obj
 
-def save_series_json(pkg: SeriesPackage, out_dir: str = "tournaments") -> str:
+def save_series_json(pkg: SeriesPackage, out_dir: str = "ttt/tournaments") -> str:
     os.makedirs(out_dir, exist_ok=True)
     fname = f"series_{pkg.meta['agent_A']}_vs_{pkg.meta['agent_B']}_{pkg.meta['timestamp']}.json"
     path = os.path.join(out_dir, fname)
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     # Quick smoke test: RandomAgent vs RandomAgent
     result = play_series(RandomAgent, RandomAgent, n_games=200, base_seed=42)
     print(
-        f"Heuristic (A) vs Random (B) over {result.n_games} games:\n"
+        f"Random (A) vs Random (B) over {result.n_games} games:\n"
         f"  A wins: {result.wins_A}\n"
         f"  B wins: {result.wins_B}\n"
         f"  Draws : {result.draws}\n"
