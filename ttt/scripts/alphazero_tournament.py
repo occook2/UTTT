@@ -21,7 +21,7 @@ def run_alphazero_vs_baseline(
     checkpoint_path: str,
     baseline_type: str = "random",
     n_games: int = 100,
-    mcts_simulations: int = 10,
+    mcts_simulations: int = 100,
     output_dir: str = "ttt/tournaments",
 ) -> str:
     """

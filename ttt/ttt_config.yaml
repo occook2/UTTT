@@ -2,19 +2,19 @@
 
 # Training parameters
 n_epochs: 2
-games_per_epoch: 5
-batch_size: 64
+games_per_epoch: 10
+batch_size: 128
 learning_rate: 0.001
 weight_decay: 0.0001
 
 # Adaptive learning rate parameters
-use_lr_scheduler: true
+use_lr_scheduler: false
 lr_scheduler_patience: 3     # Epochs to wait before reducing LR
 lr_scheduler_factor: 0.5     # Factor to multiply LR by
 lr_scheduler_threshold: 0.01 # Minimum decrease to be significant
 
 # Self-play parameters
-mcts_simulations: 10
+mcts_simulations: 50
 temperature_threshold: 9
 temperature: 1.0
 c_puct: 1.0
@@ -22,7 +22,7 @@ use_multiprocessing: true
 num_processes: 5
 
 # Adaptive temperature based on policy confidence
-use_adaptive_temperature: true
+use_adaptive_temperature: false
 confidence_threshold: 0.6    # Switch to deterministic if max policy > 60%
 
 # Dirichlet noise for exploration during training
@@ -32,7 +32,7 @@ dirichlet_epsilon: 0.25     # Mix 75% prior + 25% noise
 dirichlet_noise_moves: 10   # Only apply noise to first N moves of game
 
 # Model saving
-save_every: 2
+save_every: 1
 checkpoint_dir: "checkpoints"
 
 # Device
@@ -42,7 +42,7 @@ device: "cuda"
 max_training_samples: 100000
 
 # Symmetry augmentation
-use_symmetry_augmentation: true
+use_symmetry_augmentation: false
 
 # UI data saving (separate from training)
 save_ui_data: true
