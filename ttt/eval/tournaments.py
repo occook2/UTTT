@@ -195,7 +195,7 @@ def play_series_with_records(
 
     for g in range(n_games):
         # Handle both class types and callable factories
-        print(f"Starting game {g + 1}/{n_games}")
+        print(f"Starting game {g + 1}/{n_games}", end='\r')
         if callable(AgentA) and not hasattr(AgentA, '__name__'):
             # It's a lambda/callable factory
             A = AgentA(**instantiate_kwargs_A)
