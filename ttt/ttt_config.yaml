@@ -1,9 +1,9 @@
 # AlphaZero Training Configuration
 
 # Training parameters
-n_epochs: 2
-games_per_epoch: 10
-batch_size: 128
+n_epochs: 50
+games_per_epoch: 200
+batch_size: 256
 learning_rate: 0.001
 weight_decay: 0.0001
 
@@ -14,10 +14,10 @@ lr_scheduler_factor: 0.5     # Factor to multiply LR by
 lr_scheduler_threshold: 0.01 # Minimum decrease to be significant
 
 # Self-play parameters
-mcts_simulations: 50
-temperature_threshold: 9
+mcts_simulations: 30
+temperature_threshold: 3
 temperature: 1.0
-c_puct: 1.0
+c_puct: 2.0
 use_multiprocessing: true
 num_processes: 5
 
@@ -27,13 +27,16 @@ confidence_threshold: 0.6    # Switch to deterministic if max policy > 60%
 
 # Dirichlet noise for exploration during training
 add_dirichlet_noise: false
-dirichlet_alpha: 0.3        # Good for TTT (branching factor ~9)
+dirichlet_alpha: 0.2        # Good for TTT (branching factor ~9)
 dirichlet_epsilon: 0.25     # Mix 75% prior + 25% noise
-dirichlet_noise_moves: 10   # Only apply noise to first N moves of game
+dirichlet_noise_moves: 1   # Only apply noise to first N moves of game
 
 # Model saving
 save_every: 1
 checkpoint_dir: "checkpoints"
+
+# Model loading (set to null/None to start fresh training)
+model_checkpoint: null  # Path to checkpoint file to resume training from
 
 # Device
 device: "cuda"

@@ -213,9 +213,13 @@ class AlphaZeroTrainer:
             # Generate self-play data
             new_examples = self._generate_self_play_data(epoch)
             
-            # Apply symmetry augmentation to get 4x training data
-            aug_examples = augment_examples_with_rotations(new_examples)
-            print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (8x with rotations and reflections)")
+            # Apply symmetry augmentation if enabled
+            if self.config.use_symmetry_augmentation:
+                aug_examples = augment_examples_with_rotations(new_examples)
+                print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (8x with rotations and reflections)")
+            else:
+                aug_examples = new_examples
+                print(f"Generated {len(new_examples)} examples (no augmentation)")
             
             # Save UI-friendly data for inspection (separate from training)
             if getattr(self.config, 'save_ui_data', True):

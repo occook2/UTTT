@@ -1,7 +1,7 @@
 /data/
 runs
 /checkpoints/
-/tournaments/
+tournaments
 /tensorboard_logs/
 
 # Byte-compiled / optimized / DLL files

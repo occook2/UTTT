@@ -37,6 +37,7 @@ def main():
             learning_rate=0.001,
             save_every=1,          # Save every epoch to track progress
             checkpoint_dir="checkpoints",
+            model_checkpoint=None,  # Start fresh training
             use_multiprocessing=True,  # Enable parallel self-play
             num_processes=5,    # Use all available CPUs
             network=NetworkConfig(
@@ -58,8 +59,13 @@ def main():
     # Create trainer and start training
     trainer = AlphaZeroTrainer(config, run_dir)
     
-    # Optional: Load from checkpoint to resume training
-    # start_epoch = trainer.load_checkpoint("checkpoints/alphazero/alphazero_epoch_10.pt")
+    # Load from checkpoint if specified in config
+    start_epoch = 0
+    if config.model_checkpoint is not None:
+        print(f"Loading model from checkpoint: {config.model_checkpoint}")
+        start_epoch = trainer.load_checkpoint(config.model_checkpoint)
+    else:
+        print("Starting fresh training (no checkpoint specified)")
     
     trainer.train()
 
