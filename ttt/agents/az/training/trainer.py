@@ -95,6 +95,9 @@ class AlphaZeroTrainer:
             device=self.config.device
         )
         
+        # Save the initialized neural network (epoch 0)
+        self._save_checkpoint(0)
+        
         # Training data storage
         self.training_examples: List[TrainingExample] = []
         
