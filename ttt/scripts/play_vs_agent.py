@@ -354,8 +354,9 @@ class PlayVsAgentApp:
         self.thinking = False
         self.thinking_label.config(text="")
         
-        row, col = action_to_rc(action)
-        self.last_move = (row, col)
+        action = action[0]
+
+        self.last_move = (action)
         
         self.env.step(action)
         self._redraw()

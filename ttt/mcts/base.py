@@ -76,10 +76,10 @@ class Node:
     def select_child_ucb(self, c_puct: float) -> Node:
         """Select child with highest UCB score"""
         def ucb_score(child: Node) -> float:
-            if child.visit_count == 0:
-                return float('inf')
+            # if child.visit_count == 0:
+            #     return float('inf')
             
-            q_value = child.mean_value
+            q_value = -child.mean_value
             u_value = c_puct * child.prior * np.sqrt(self.visit_count) / (1 + child.visit_count)
             return q_value + u_value
         
@@ -97,8 +97,6 @@ class Node:
         self.value_sum += value
         self.mean_value = self.value_sum / self.visit_count
         
-        if self.parent is not None:
-            self.parent.backup(-value)  # Flip value for opponent
     
     def get_action_probabilities(self, temperature: float = 1.0) -> np.ndarray:
         """Get action probabilities based on visit counts"""
@@ -231,9 +229,9 @@ class GenericMCTS:
             if winner == 0:
                 value = 0.0
             elif winner == current_player:
-                value = 1.0
-            else:
                 value = -1.0
+            else:
+                value = 1.0
         else:
             # Expansion and evaluation
             value, priors = self.strategy.evaluate_and_expand(env)
