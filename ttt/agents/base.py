@@ -1,4 +1,4 @@
-# uttt/agents/base.py
+# ttt/agents/base.py
 from __future__ import annotations
 from typing import Protocol, runtime_checkable, Optional, Any
 from ttt.env.state import TTTEnv

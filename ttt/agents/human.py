@@ -1,4 +1,4 @@
-# uttt/agents/human.py
+# ttt/agents/human.py
 """
 Human agent for interactive gameplay.
 """
