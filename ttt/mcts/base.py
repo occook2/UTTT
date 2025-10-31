@@ -175,6 +175,7 @@ class GenericMCTS:
                 prior = priors.get(action, 1.0 / len(legal_actions))
                 root.add_child(action, prior, child_key)
             root.is_expanded = True
+            root.visit_count = 1  # Initialize specifically first move to 1, all expanded children will be initialized to 1
         
         # Add Dirichlet noise to root BEFORE running simulations
         # Only apply noise during early moves of the game

@@ -1,7 +1,7 @@
 # AlphaZero Training Configuration
 
 # Training parameters
-n_epochs: 25
+n_epochs: 15
 games_per_epoch: 50
 batch_size: 256
 learning_rate: 0.001
