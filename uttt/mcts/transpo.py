@@ -8,7 +8,7 @@ def state_key(env: UTTTEnv) -> Tuple[bytes, bytes, Optional[Tuple[int, int]], in
     """
     Build a compact, hashable key capturing everything that matters for game logic:
     - full 9x9 board
-    - 3x3 macro_wins (with 2 meaning 'closed via draw' in your env)
+    - 3x3 macro_wins (with 10 meaning 'closed via draw' in your env)
     - last_move (or None)
     - player to move (+1 or -1)
     """

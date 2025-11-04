@@ -105,16 +105,19 @@ class AlphaZeroTrainer:
             'value_losses': [],
             'games_played': 0
         }
+
+        # Save the initialized neural network (epoch 0)
+        self._save_checkpoint(0)
     
     def _setup_shared_tensorboard_logging(self):
         """Set up shared TensorBoard logging for cross-run comparison."""
         if not self.run_dir:
             return
             
-        shared_tensorboard_dir = os.path.join('tensorboard_logs', os.path.basename(self.run_dir))
+        shared_tensorboard_dir = os.path.join('uttt/tensorboard_logs', os.path.basename(self.run_dir))
         
         try:
-            os.makedirs('tensorboard_logs', exist_ok=True)
+            os.makedirs('uttt/tensorboard_logs', exist_ok=True)
             
             # On Windows, try to create a junction, otherwise copy logs later
             if os.name == 'nt':  # Windows
@@ -229,10 +232,14 @@ class AlphaZeroTrainer:
             # Generate self-play data
             new_examples = self._generate_self_play_data(epoch)
             
-            # Apply symmetry augmentation to get 4x training data
-            aug_examples = augment_examples_with_rotations(new_examples)
-            print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (8x with rotations and reflections)")
-            
+            # Apply symmetry augmentation if enabled
+            if self.config.use_symmetry_augmentation:
+                aug_examples = augment_examples_with_rotations(new_examples)
+                print(f"Generated {len(new_examples)} examples, augmented to {len(aug_examples)} examples (8x with rotations and reflections)")
+            else:
+                aug_examples = new_examples
+                print(f"Generated {len(new_examples)} examples (no augmentation)")
+                
             # Save UI-friendly data for inspection (separate from training)
             # Use original examples (not augmented) to save 8x space - UI doesn't need rotated copies
             if getattr(self.config, 'save_ui_data', True):

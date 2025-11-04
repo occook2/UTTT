@@ -65,40 +65,6 @@ def _share_network_memory(network):
         buffer.share_memory_()
     
     return network
-
-
-def _play_single_game_worker(args):
-    """
-    Worker function for multiprocessing self-play games.
-    
-    Args:
-        args: Tuple containing (agent_state_dict, mcts_config, temperature_threshold, game_idx, device)
-    
-    Returns:
-        Tuple of (training_examples, game_stats)
-    """
-    agent_state_dict, net_config, mcts_config, temperature_threshold, game_idx, device = args
-    
-    # Create a fresh agent instance with the CORRECT config
-    from uttt.agents.az.net import AlphaZeroNetUTTT
-    network = AlphaZeroNetUTTT(net_config).to(device)
-    network.load_state_dict(agent_state_dict)
-    network.eval()
-    
-    agent = AlphaZeroAgent(network=network, device=device)
-    
-    # Create trainer for this game
-    trainer = SelfPlayTrainer(
-        agent=agent,
-        mcts_config=mcts_config,
-        temperature_threshold=temperature_threshold,
-        collect_data=True
-    )
-    
-    # Play the game and return results
-    return trainer.play_game()
-
-
 @dataclass
 class TrainingExample:
     """Single training example from self-play."""

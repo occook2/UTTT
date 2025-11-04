@@ -358,10 +358,10 @@ class PlayVsAgentApp:
         self.thinking = False
         self.thinking_label.config(text="")
         
-        row, col = action_to_rc(action)
+        row, col = action_to_rc(action[0])
         self.last_move = (row, col)
         
-        self.env.step(action)
+        self.env.step(action[0])
         self._redraw()
         
         # Check if game is over

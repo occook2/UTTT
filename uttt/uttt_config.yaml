@@ -1,21 +1,21 @@
 # AlphaZero Training Configuration
 
 # Training parameters
-n_epochs: 6
-games_per_epoch: 100
-batch_size: 64
+n_epochs: 4
+games_per_epoch: 50
+batch_size: 256
 learning_rate: 0.001
 weight_decay: 0.0001
 
 # Adaptive learning rate parameters
-use_lr_scheduler: true
+use_lr_scheduler: false
 lr_scheduler_patience: 3     # Epochs to wait before reducing LR
 lr_scheduler_factor: 0.5     # Factor to multiply LR by
 lr_scheduler_threshold: 0.01 # Minimum decrease to be significant
 
 # Self-play parameters
-mcts_simulations: 400
-temperature_threshold: 81
+mcts_simulations: 200
+temperature_threshold: 65
 temperature: 1.0
 c_puct: 1.0
 use_multiprocessing: true
@@ -34,7 +34,7 @@ dirichlet_noise_moves: 6   # Only apply noise to first N moves of game
 # Model saving
 save_every: 2
 checkpoint_dir: "checkpoints"
-resume_from_checkpoint: "runs/run_20251020_113559/checkpoints/alphazero_epoch_28.pt"
+resume_from_checkpoint: "uttt/runs/run_20251102_175425/checkpoints/alphazero_epoch_6.pt"
 
 # Devices
 device: "cuda"

@@ -75,11 +75,8 @@ class Node:
         
     def select_child_ucb(self, c_puct: float) -> Node:
         """Select child with highest UCB score"""
-        def ucb_score(child: Node) -> float:
-            if child.visit_count == 0:
-                return float('inf')
-            
-            q_value = child.mean_value
+        def ucb_score(child: Node) -> float:         
+            q_value = -child.mean_value
             u_value = c_puct * child.prior * np.sqrt(self.visit_count) / (1 + child.visit_count)
             return q_value + u_value
         
@@ -96,10 +93,8 @@ class Node:
         self.visit_count += 1
         self.value_sum += value
         self.mean_value = self.value_sum / self.visit_count
-        
-        if self.parent is not None:
-            self.parent.backup(-value)  # Flip value for opponent
     
+
     def get_action_probabilities(self, temperature: float = 1.0) -> np.ndarray:
         """Get action probabilities based on visit counts"""
         probs = np.zeros(81)  # UTTT has 81 actions
@@ -177,6 +172,7 @@ class GenericMCTS:
                 prior = priors.get(action, 1.0 / len(legal_actions))
                 root.add_child(action, prior, child_key)
             root.is_expanded = True
+            root.visit_count = 1 # Initialize specifically first move to 1, all expanded children will be initialized to 1
         
         # Add Dirichlet noise to root BEFORE running simulations
         # Only apply noise during early moves of the game
@@ -231,9 +227,9 @@ class GenericMCTS:
             if winner == 0:
                 value = 0.0
             elif winner == current_player:
-                value = 1.0
-            else:
                 value = -1.0
+            else:
+                value = 1.0
         else:
             # Expansion and evaluation
             value, priors = self.strategy.evaluate_and_expand(env)

@@ -43,6 +43,8 @@ class GameRecord:
     a_is_x: bool          # True if AgentA played X in this game
     winner: int           # +1 (X), -1 (O), 0 (draw)
     moves: List[int]      # list of 0..80 actions in order
+    action_probs: List[List[float]]  # per-move action probabilities
+    priors: List[List[float]]        # per-move prior probabilities
     moves_len: int
 
 @dataclass
@@ -153,10 +155,14 @@ def play_series(
 def _play_game_record(agent_X: Any, agent_O: Any, seed: Optional[int]) -> GameRecord:
     env = UTTTEnv(seed=seed)
     moves: List[int] = []
+    action_probs_list = []
+    priors_list = []
     while True:
         agent = agent_X if env.player == 1 else agent_O
-        action = agent.select_action(env)
+        action, action_probs, priors = agent.select_action(env)
         moves.append(int(action))
+        action_probs_list.append(action_probs)
+        priors_list.append(priors)
         step = env.step(action)
         if step.terminated:
             return GameRecord(
@@ -164,6 +170,8 @@ def _play_game_record(agent_X: Any, agent_O: Any, seed: Optional[int]) -> GameRe
                 a_is_x=False,  # filled by caller (we don't know here)
                 winner=int(step.info.get("winner", 0)),
                 moves=moves,
+                action_probs=action_probs_list,
+                priors=priors_list,
                 moves_len=len(moves),
             )
 
@@ -296,7 +304,7 @@ def play_series_with_records(
         "instantiate_kwargs_A": instantiate_kwargs_A,
         "instantiate_kwargs_B": instantiate_kwargs_B,
         "schema": {
-            "game": ["seed", "a_is_x", "winner", "moves", "moves_len"],
+            "game": ["seed", "a_is_x", "winner", "moves", "action_probs", "priors", "moves_len"],
             "winner_values": {"X": 1, "O": -1, "draw": 0},
         },
     }
@@ -436,7 +444,8 @@ def play_series_with_openings(
                 current_player = env.player
                 agent = agent_X if current_player == 1 else agent_O
                 
-                action = agent.select_action(env)
+                action, action_probs, priors = agent.select_action(env)
+                
                 moves.append(int(action))
                 
                 step_result = env.step(action)
@@ -451,6 +460,8 @@ def play_series_with_openings(
                 a_is_x=a_is_x,
                 winner=winner,
                 moves=moves,
+                action_probs=action_probs,
+                priors=priors,
                 moves_len=len(moves)
             )
             

@@ -3,7 +3,6 @@ AlphaZero training loop implementation.
 Combines self-play data generation with neural network training.
 """
 import os
-import argparse
 
 # Suppress TensorFlow oneDNN optimization warnings
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -20,17 +19,12 @@ from .training import (
 
 def main():
     """Main training function."""
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Train AlphaZero for Ultimate Tic-Tac-Toe')
-    parser.add_argument('--config', '-c', type=str, default='config.yaml',
-                       help='Path to configuration YAML file')
-    args = parser.parse_args()
     
     # Create timestamped run directory
     run_dir = make_run_directory()
     
     # Load config from file (or fallback to defaults)
-    config_path = args.config
+    config_path = 'uttt/uttt_config.yaml'
     if os.path.exists(config_path):
         print(f"Loading config from {config_path}")
         config = load_config_from_yaml(config_path)

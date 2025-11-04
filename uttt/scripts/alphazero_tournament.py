@@ -24,7 +24,7 @@ def run_alphazero_vs_baseline(
     baseline_type: str = "random",
     n_games: int = 100,
     mcts_simulations: int = 10,
-    output_dir: str = "tournaments",
+    output_dir: str = "uttt/tournaments",
     use_openings: bool = True,
     opening_moves: int = 1
 ) -> str:
@@ -130,7 +130,7 @@ def run_alphazero_vs_alphazero(
     checkpoint_b: str,
     n_games: int = 100,
     mcts_simulations: int = 100,
-    output_dir: str = "tournaments",
+    output_dir: str = "uttt/tournaments",
     use_openings: bool = True,
     opening_moves: int = 1
 ) -> str:
@@ -244,7 +244,7 @@ def main():
     baseline_parser.add_argument('--games', type=int, default=100, help='Number of games')
     baseline_parser.add_argument('--simulations', type=int, default=100, 
                                 help='MCTS simulations per move')
-    baseline_parser.add_argument('--output-dir', default='tournaments', help='Output directory')
+    baseline_parser.add_argument('--output-dir', default='uttt/tournaments', help='Output directory')
     baseline_parser.add_argument('--no-openings', action='store_true', 
                                help='Disable opening book (play from empty board)')
     baseline_parser.add_argument('--opening-moves', type=int, default=1,
@@ -257,7 +257,7 @@ def main():
     az_parser.add_argument('--games', type=int, default=100, help='Number of games')
     az_parser.add_argument('--simulations', type=int, default=100, 
                           help='MCTS simulations per move')
-    az_parser.add_argument('--output-dir', default='tournaments', help='Output directory')
+    az_parser.add_argument('--output-dir', default='uttt/tournaments', help='Output directory')
     az_parser.add_argument('--no-openings', action='store_true',
                           help='Disable opening book (play from empty board)')
     az_parser.add_argument('--opening-moves', type=int, default=1,

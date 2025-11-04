@@ -22,7 +22,7 @@ def make_run_directory() -> str:
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_name = f"run_{timestamp}"
-    run_dir = os.path.join("runs", run_name)
+    run_dir = os.path.join("uttt/runs", run_name)
     os.makedirs(run_dir, exist_ok=True)
     
     # Create subdirectories within the run directory
