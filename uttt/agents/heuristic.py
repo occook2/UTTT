@@ -44,7 +44,7 @@ class HeuristicAgent(Agent):
     def select_action(self, env: UTTTEnv) -> int:
         legal = env.legal_actions()
         if len(legal) == 1:
-            return legal[0]
+            return legal[0], [], []
 
         best: List[int] = []
         best_score = -float("inf")
@@ -58,8 +58,8 @@ class HeuristicAgent(Agent):
 
         # tie-breaker using env RNG if available for determinism, else Python's random
         if hasattr(env, "rng") and env.rng is not None:
-            return int(env.rng.choice(np.array(best)))
-        return random.choice(best)
+            return int(env.rng.choice(np.array(best))), [], []
+        return random.choice(best), [], []
 
     # ----------------------------- Scoring ---------------------------------
 

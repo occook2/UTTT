@@ -76,9 +76,6 @@ class Node:
     def select_child_ucb(self, c_puct: float) -> Node:
         """Select child with highest UCB score"""
         def ucb_score(child: Node) -> float:
-            # if child.visit_count == 0:
-            #     return float('inf')
-            
             q_value = -child.mean_value
             u_value = c_puct * child.prior * np.sqrt(self.visit_count) / (1 + child.visit_count)
             return q_value + u_value

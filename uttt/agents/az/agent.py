@@ -73,8 +73,8 @@ class AlphaZeroAgent(Agent):
         mcts = GenericMCTS(self.strategy, self.mcts_config)
         
         # Run MCTS search
-        action, _, _ = mcts.search(env)  # Updated to handle 3 return values
-        return action
+        action, action_probs, priors = mcts.search(env)  # Updated to handle 3 return values
+        return action, action_probs, priors
     
     def evaluate_position(self, env: UTTTEnv) -> float:
         """

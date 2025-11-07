@@ -202,15 +202,31 @@ class AlphaZeroTrainer:
         except:
             pass
     
-    def train(self):
+    def train(self):     
         """Run the complete AlphaZero training loop."""
+        # Handle checkpoint resuming
+        start_epoch = 1
+        end_epoch = self.config.n_epochs
+        
+        if hasattr(self.config, 'resume_from_checkpoint') and self.config.resume_from_checkpoint:
+            if os.path.exists(self.config.resume_from_checkpoint):
+                print(f"Resuming training from checkpoint: {self.config.resume_from_checkpoint}")
+                checkpoint_epoch = self.load_checkpoint(self.config.resume_from_checkpoint)
+                start_epoch = checkpoint_epoch + 1
+                # When resuming, n_epochs means "run N additional epochs from checkpoint"
+                end_epoch = checkpoint_epoch + self.config.n_epochs
+                print(f"Resuming from epoch {start_epoch}")
+            else:
+                print(f"Checkpoint file not found: {self.config.resume_from_checkpoint}")
+                print("Starting fresh training...")
+        
         print(f"Starting AlphaZero training: {self.config.n_epochs} epochs")
         print(f"Games per epoch: {self.config.games_per_epoch}")
         print(f"MCTS simulations: {self.config.mcts_simulations}")
         print(f"Device: {self.config.device}")
         print("-" * 60)
         
-        for epoch in range(1, self.config.n_epochs + 1):
+        for epoch in range(start_epoch, end_epoch + 1):
             epoch_start_time = time.time()
             
             # Generate self-play data
@@ -227,7 +243,8 @@ class AlphaZeroTrainer:
             # Save UI-friendly data for inspection (separate from training)
             if getattr(self.config, 'save_ui_data', True):
                 save_training_games_for_ui(aug_examples, epoch, self.config, self.run_dir)
-            
+                print(f"Saved {len(new_examples)} original examples for UI (not augmented to save space)")
+
             # Add to training dataset and manage size
             self._update_training_data(aug_examples)
             # Train neural network on collected data

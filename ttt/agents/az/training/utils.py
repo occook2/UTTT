@@ -4,6 +4,8 @@ Utility functions for AlphaZero training.
 import os
 import json
 import yaml
+import glob
+import re
 from datetime import datetime
 from typing import List, Dict, Any
 
@@ -238,3 +240,71 @@ def reconstruct_games_from_examples(examples: List[TrainingExample]) -> List[Dic
         games.append(game_data)
     
     return games
+
+
+def find_latest_checkpoint(checkpoint_dir: str) -> str:
+    """
+    Find the latest checkpoint file in a directory.
+    
+    Args:
+        checkpoint_dir: Directory to search for checkpoints
+        
+    Returns:
+        Path to the latest checkpoint file, or None if none found
+    """
+    if not os.path.exists(checkpoint_dir):
+        return None
+    
+    # Look for checkpoint files matching pattern: alphazero_epoch_*.pt
+    pattern = os.path.join(checkpoint_dir, "alphazero_epoch_*.pt")
+    checkpoint_files = glob.glob(pattern)
+    
+    if not checkpoint_files:
+        return None
+    
+    # Extract epoch numbers and find the highest one
+    epoch_numbers = []
+    for file_path in checkpoint_files:
+        filename = os.path.basename(file_path)
+        match = re.search(r'alphazero_epoch_(\d+)\.pt', filename)
+        if match:
+            epoch_num = int(match.group(1))
+            epoch_numbers.append((epoch_num, file_path))
+    
+    if epoch_numbers:
+        # Return path of checkpoint with highest epoch number
+        latest_epoch, latest_path = max(epoch_numbers, key=lambda x: x[0])
+        print(f"Found latest checkpoint: epoch {latest_epoch} at {latest_path}")
+        return latest_path
+    
+    return None
+
+
+def list_available_checkpoints(checkpoint_dir: str) -> List[str]:
+    """
+    List all available checkpoint files in a directory.
+    
+    Args:
+        checkpoint_dir: Directory to search for checkpoints
+        
+    Returns:
+        List of checkpoint file paths, sorted by epoch number
+    """
+    if not os.path.exists(checkpoint_dir):
+        return []
+    
+    pattern = os.path.join(checkpoint_dir, "alphazero_epoch_*.pt")
+    checkpoint_files = glob.glob(pattern)
+    
+    # Sort by epoch number
+    epoch_files = []
+    for file_path in checkpoint_files:
+        filename = os.path.basename(file_path)
+        match = re.search(r'alphazero_epoch_(\d+)\.pt', filename)
+        if match:
+            epoch_num = int(match.group(1))
+            epoch_files.append((epoch_num, file_path))
+    
+    # Sort by epoch number and return just the paths
+    epoch_files.sort(key=lambda x: x[0])
+    return [path for epoch, path in epoch_files]
