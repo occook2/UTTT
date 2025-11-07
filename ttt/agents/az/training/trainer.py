@@ -266,16 +266,16 @@ class AlphaZeroTrainer:
                     shuffle=False,  # Don't shuffle for dead ReLU calculation
                     num_workers=0
                 )
-                dead_relu_pct = calculate_dead_relu_percentage(
-                    self.network, dataloader, self.config.device, max_batches=3
-                )
+                # dead_relu_pct = calculate_dead_relu_percentage(
+                #     self.network, dataloader, self.config.device, max_batches=3
+                # )
                 
                 # Prepare metrics for logging
                 metrics = {
                     'total_loss': epoch_loss,
                     'policy_loss': policy_loss,
                     'value_loss': value_loss,
-                    'dead_relu_pct': dead_relu_pct
+                    #'dead_relu_pct': dead_relu_pct
                 }
                 
                 # Calculate self-play statistics
